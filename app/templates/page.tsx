@@ -187,7 +187,7 @@ export default function TemplatesPage() {
             <button
               type="button"
               onClick={openCreateForm}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#88da1c] text-black px-4 py-2.5 text-sm font-semibold hover:text-white shadow-sm transition hover:bg-green-700"
             >
               <Plus size={18} />
               Create Template

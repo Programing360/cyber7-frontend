@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { X, CalendarClock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, CalendarClock, Send, Pencil } from "lucide-react";
+
 import { Campaign, CampaignStatus } from "@/src/data/mock/campaigns";
 
 interface CampaignFormProps {
+  campaign?: Campaign;
   onSave: (campaign: Campaign) => void;
   onClose: () => void;
 }
@@ -26,19 +28,65 @@ const templates = [
   "welcome_message",
 ];
 
-export default function CampaignForm({ onSave, onClose }: CampaignFormProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [templateName, setTemplateName] = useState(templates[0]);
-  const [audience, setAudience] = useState(audiences[0]);
-  const [scheduledAt, setScheduledAt] = useState("");
+const inputClass =
+  "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100";
+
+function getRecipients(audience: string): number {
+  switch (audience) {
+    case "All Customers":
+      return 1200;
+    case "New Leads":
+      return 450;
+    case "VIP Customers":
+      return 180;
+    case "Recent Buyers":
+      return 320;
+    case "New Customers":
+      return 150;
+    default:
+      return 0;
+  }
+}
+
+export default function CampaignForm({
+  campaign,
+  onSave,
+  onClose,
+}: CampaignFormProps) {
+  const [name, setName] = useState(campaign?.name ?? "");
+  const [description, setDescription] = useState(campaign?.description ?? "");
+  const [templateName, setTemplateName] = useState(
+    campaign?.templateName ?? templates[0],
+  );
+  const [audience, setAudience] = useState(campaign?.audience ?? audiences[0]);
+  const [scheduledAt, setScheduledAt] = useState(campaign?.scheduledAt ?? "");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [onClose]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
 
     if (!name.trim()) {
       setError("Please enter a campaign name.");
+      return;
+    }
+
+    if (name.trim().length > 100) {
+      setError("Campaign name must be 100 characters or fewer.");
       return;
     }
 
@@ -52,46 +100,52 @@ export default function CampaignForm({ onSave, onClose }: CampaignFormProps) {
       return;
     }
 
-    if (scheduledAt && new Date(scheduledAt).getTime() <= Date.now()) {
-      setError("Please select a future schedule time.");
+    if (
+      scheduledAt &&
+      (!Number.isFinite(new Date(scheduledAt).getTime()) ||
+        new Date(scheduledAt).getTime() <= Date.now())
+    ) {
+      setError("Please select a valid future schedule time.");
+      return;
+    }
+
+    if (campaign && campaign.status !== "Draft") {
+      setError("Only draft campaigns can be edited.");
       return;
     }
 
     const status: CampaignStatus = scheduledAt ? "Scheduled" : "Draft";
 
-    const campaign: Campaign = {
-      id: `campaign-${Date.now()}`,
+    const updatedCampaign: Campaign = {
+      id: campaign?.id ?? `campaign-${Date.now()}`,
       name: name.trim(),
       description: description.trim(),
       templateName,
       audience,
-      recipients:
-        audience === "All Customers"
-          ? 1200
-          : audience === "VIP Customers"
-            ? 180
-            : audience === "New Leads"
-              ? 450
-              : audience === "Recent Buyers"
-                ? 320
-                : 150,
+      recipients: getRecipients(audience),
       status,
       scheduledAt,
-      createdAt: new Date().toISOString().slice(0, 10),
-      sent: 0,
-      delivered: 0,
-      read: 0,
-      failed: 0,
+      // Preserve existing date metadata when editing.
+      // New campaign timestamps should come from the backend.
+      createdAt: campaign?.createdAt ?? "",
+      sent: campaign?.sent ?? 0,
+      delivered: campaign?.delivered ?? 0,
+      read: campaign?.read ?? 0,
+      failed: campaign?.failed ?? 0,
     };
 
-    onSave(campaign);
+    onSave(updatedCampaign);
   }
 
-  const inputClass =
-    "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <section
         role="dialog"
         aria-modal="true"
@@ -104,8 +158,9 @@ export default function CampaignForm({ onSave, onClose }: CampaignFormProps) {
               id="campaign-form-title"
               className="text-lg font-bold text-slate-900"
             >
-              Create Campaign
+              {campaign ? "Edit Campaign" : "Create Campaign"}
             </h2>
+
             <p className="mt-1 text-xs text-slate-500">
               Configure a WhatsApp campaign for your audience.
             </p>
@@ -123,37 +178,60 @@ export default function CampaignForm({ onSave, onClose }: CampaignFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4 p-5 sm:p-6">
           <div>
-            <label className="text-sm font-medium text-slate-700">
+            <label
+              htmlFor="campaign-name"
+              className="text-sm font-medium text-slate-700"
+            >
               Campaign name *
             </label>
+
             <input
+              id="campaign-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="e.g. November Special Offer"
+              maxLength={100}
+              required
               className={inputClass}
             />
+
+            <p className="mt-1 text-right text-xs text-slate-400">
+              {name.length}/100
+            </p>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-700">
+            <label
+              htmlFor="campaign-description"
+              className="text-sm font-medium text-slate-700"
+            >
               Description
             </label>
+
             <textarea
+              id="campaign-description"
               rows={3}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="What is this campaign about?"
+              maxLength={500}
               className={inputClass}
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-700">
+            <label
+              htmlFor="campaign-template"
+              className="text-sm font-medium text-slate-700"
+            >
               WhatsApp template *
             </label>
+
             <select
+              id="campaign-template"
               value={templateName}
               onChange={(event) => setTemplateName(event.target.value)}
+              required
               className={inputClass}
             >
               {templates.map((template) => (
@@ -162,15 +240,25 @@ export default function CampaignForm({ onSave, onClose }: CampaignFormProps) {
                 </option>
               ))}
             </select>
+
+            <p className="mt-1.5 text-xs text-slate-400">
+              Demo templates. Production templates will load from the backend.
+            </p>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-700">
+            <label
+              htmlFor="campaign-audience"
+              className="text-sm font-medium text-slate-700"
+            >
               Target audience *
             </label>
+
             <select
+              id="campaign-audience"
               value={audience}
               onChange={(event) => setAudience(event.target.value)}
+              required
               className={inputClass}
             >
               {audiences.map((item) => (
@@ -180,13 +268,26 @@ export default function CampaignForm({ onSave, onClose }: CampaignFormProps) {
               ))}
             </select>
 
+            <div className="mt-2 flex items-center justify-between rounded-xl bg-slate-50 px-3.5 py-3">
+              <span className="text-sm text-slate-500">
+                Estimated recipients
+              </span>
+
+              <span className="text-sm font-bold text-slate-900">
+                {getRecipients(audience).toLocaleString()}
+              </span>
+            </div>
+
             <p className="mt-1.5 text-xs text-slate-400">
-              Recipient counts are sample data for this demo.
+              Illustrative demo counts, not live contact totals.
             </p>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-700">
+            <label
+              htmlFor="campaign-schedule"
+              className="text-sm font-medium text-slate-700"
+            >
               Schedule date and time
             </label>
 
@@ -197,6 +298,7 @@ export default function CampaignForm({ onSave, onClose }: CampaignFormProps) {
               />
 
               <input
+                id="campaign-schedule"
                 type="datetime-local"
                 value={scheduledAt}
                 onChange={(event) => setScheduledAt(event.target.value)}
@@ -211,9 +313,10 @@ export default function CampaignForm({ onSave, onClose }: CampaignFormProps) {
 
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
             <p className="text-xs leading-5 text-amber-800">
-              Demo only: creating or scheduling a campaign will not send
-              messages to WhatsApp. Actual sending requires a backend and
-              configured Meta WhatsApp Cloud API.
+              Demo mode: this form does not send messages or schedule background
+              jobs. The backend must validate the schedule, audience, template
+              approval and business permissions before a real campaign can be
+              created.
             </p>
           </div>
 
@@ -223,7 +326,7 @@ export default function CampaignForm({ onSave, onClose }: CampaignFormProps) {
             </p>
           )}
 
-          <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+          <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-4">
             <button
               type="button"
               onClick={onClose}
@@ -234,9 +337,11 @@ export default function CampaignForm({ onSave, onClose }: CampaignFormProps) {
 
             <button
               type="submit"
-              className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
+              className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
             >
-              Create Campaign
+              {campaign ? <Pencil size={16} /> : <Send size={16} />}
+
+              {campaign ? "Save Changes" : "Create Campaign"}
             </button>
           </div>
         </form>

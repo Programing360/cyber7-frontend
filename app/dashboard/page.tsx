@@ -34,7 +34,7 @@ export default function DashboardPage() {
 
             <Link
               href="/campaigns"
-              className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#88da1c] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700"
             >
               <Plus size={17} />
               Create Campaign

@@ -31,7 +31,7 @@ export default function WhatsAppStatus() {
 
           <Link
             href="/integrations/whatsapp"
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#88da1c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
           >
             Configure Integration
             <ArrowRight size={16} />

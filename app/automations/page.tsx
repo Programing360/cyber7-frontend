@@ -161,13 +161,23 @@ export default function AutomationsPage() {
       return;
     }
 
-    if (!form.actionValue.trim()) {
-      setNotice("Please enter an action value.");
+    if (form.name.trim().length < 3) {
+      setNotice("Automation name must be at least 3 characters.");
       return;
     }
 
     if (!form.condition.trim()) {
       setNotice("Please enter a condition.");
+      return;
+    }
+
+    if (!form.actionValue.trim()) {
+      setNotice("Please enter action details.");
+      return;
+    }
+
+    if (form.description.trim().length > 300) {
+      setNotice("Description cannot exceed 300 characters.");
       return;
     }
 
@@ -234,9 +244,20 @@ export default function AutomationsPage() {
   };
 
   const deleteAutomation = (id: string) => {
-    setAutomations((previous) =>
-      previous.filter((automation) => automation.id !== id),
+    const automation = automations.find((item) => item.id === id);
+
+    if (!automation) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${automation.name}"? This action cannot be undone.`,
     );
+
+    if (!confirmed) {
+      setMenuId(null);
+      return;
+    }
+
+    setAutomations((previous) => previous.filter((item) => item.id !== id));
 
     setMenuId(null);
     setNotice("Automation removed from this demo.");
@@ -266,7 +287,7 @@ export default function AutomationsPage() {
 
             <button
               onClick={openCreate}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#88da1c] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
             >
               <Plus size={18} />
               Create automation
