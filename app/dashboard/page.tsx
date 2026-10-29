@@ -8,10 +8,6 @@ import WhatsAppStatus from "@/src/component/dashboard/whatsapp-status";
 import RecentConversations from "@/src/component/dashboard/recent-conversations";
 import RecentCampaigns from "@/src/component/dashboard/recent-campaigns";
 
-
-
-
-
 export default function DashboardPage() {
   return (
     <DashboardLayout>
@@ -31,10 +27,10 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+            {/* <span className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
               <span className="h-2 w-2 rounded-full bg-amber-500" />
               Demo Data
-            </span>
+            </span> */}
 
             <Link
               href="/campaigns"

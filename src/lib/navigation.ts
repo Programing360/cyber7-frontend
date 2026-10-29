@@ -59,7 +59,7 @@ export const navigationGroups: NavigationGroup[] = [
       },
       {
         label: "Automations",
-        href: "/automation",
+        href: "/automations",
         icon: Workflow,
       },
     ],
