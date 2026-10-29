@@ -33,7 +33,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Manrope", Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

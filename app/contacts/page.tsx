@@ -202,7 +202,7 @@ export default function ContactsPage() {
           </div>
 
           {/* Demo notice */}
-          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          {/* <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
             <ContactIcon size={18} className="mt-0.5 shrink-0 text-amber-700" />
             <div>
               <p className="text-sm font-semibold text-amber-900">
@@ -213,7 +213,7 @@ export default function ContactsPage() {
                 and are not saved to MongoDB or synced with WhatsApp.
               </p>
             </div>
-          </div>
+          </div> */}
 
           {/* Success notice */}
           {notice && (
@@ -262,7 +262,7 @@ export default function ContactsPage() {
               return (
                 <div
                   key={stat.title}
-                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                  className="rounded-2xl bg-white p-5 shadow-sm"
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -290,7 +290,7 @@ export default function ContactsPage() {
 
           {/* Contact table */}
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 p-4 sm:p-5">
+            <div className="border-b border-slate-200 shadow-lg p-4 sm:p-5">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
@@ -528,7 +528,7 @@ export default function ContactsPage() {
               <span>
                 Showing {filteredContacts.length} of {contacts.length} contacts
               </span>
-              <span>Demo data · Not connected to MongoDB</span>
+              {/* <span>Demo data · Not connected to MongoDB</span> */}
             </div>
           </section>
         </div>
