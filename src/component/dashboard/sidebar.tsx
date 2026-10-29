@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { MessageCircle, X, Zap } from "lucide-react";
 import { navigationGroups } from "@/src/lib/navigation";
 
-
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
@@ -38,7 +37,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             onClick={onClose}
             className="flex items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500 shadow-lg shadow-green-500/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600 shadow-lg shadow-green-500/20">
               <MessageCircle size={23} className="text-white" />
             </div>
 
@@ -59,7 +58,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         {/* Workspace badge */}
-        <div className="mx-4 mt-5 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+        {/* <div className="mx-4 mt-5 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-500/15">
             <Zap size={18} className="text-green-400" />
           </div>
@@ -70,7 +69,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </div>
 
           <span className="h-2 w-2 rounded-full bg-green-400" />
-        </div>
+        </div> */}
 
         {/* Navigation */}
         <nav className="custom-scrollbar flex-1 overflow-y-auto px-3 py-5">
@@ -94,17 +93,17 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                       key={item.href}
                       href={item.href}
                       onClick={onClose}
-                      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                      className={`group flex items-center gap-3 rounded-3xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
                         isActive
-                          ? "bg-green-500 text-white shadow-md shadow-green-950/20"
-                          : "text-slate-400 hover:bg-white/5 hover:text-white"
+                          ? "bg-[#88da1c] text-black font-semibold shadow-md shadow-green-950/20"
+                          : "text-slate-400 hover:bg-white/20 hover:text-white"
                       }`}
                     >
                       <Icon size={18} className="shrink-0" />
 
                       <span className="min-w-0 flex-1">{item.label}</span>
 
-                      {item.badge && (
+                      {/* {item.badge && (
                         <span
                           className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
                             isActive
@@ -114,7 +113,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                         >
                           {item.badge}
                         </span>
-                      )}
+                      )} */}
                     </Link>
                   );
                 })}
@@ -142,9 +141,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             </button>
           </div>
 
-          <p className="mt-4 text-center text-[10px] text-slate-500">
+          {/* <p className="mt-4 text-center text-[10px] text-slate-500">
             Cyber7 Demo · v0.1.0
-          </p>
+          </p> */}
         </div>
       </aside>
     </>

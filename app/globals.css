@@ -5,8 +5,8 @@
   --background: #f8fafc;
   --foreground: #0f172a;
 
-  --primary: #16a34a;
-  --primary-hover: #15803d;
+  --primary: #88da1c;
+  --primary-hover: #88da1c;
 
   --sidebar: #111827;
 
@@ -14,7 +14,7 @@
   --muted: #64748b;
   --border: #e2e8f0;
 
-  --success: #16a34a;
+  --success: #88da1c;
   --warning: #d97706;
   --danger: #dc2626;
 }
