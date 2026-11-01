@@ -1,37 +1,92 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, MessageCircle } from "lucide-react";
-import { Conversation } from "@/src/data/mock/inbox";
-
+import { MessageCircle, Search } from "lucide-react";
+import type { WhatsAppConversationItem, WhatsAppConversationContact } from "@/src/types/api";
 
 interface ConversationListProps {
-  conversations: Conversation[];
-  selectedId: string;
+  conversations: WhatsAppConversationItem[];
+  selectedId: string | null;
+  isLoading: boolean;
   onSelect: (id: string) => void;
 }
 
-type FilterType = "All" | "Unread" | "Assigned";
+type FilterType = "All" | "Unread" | "Open" | "Pending" | "Closed";
+
+function getContact(conv: WhatsAppConversationItem): WhatsAppConversationContact | null {
+  if (conv.contactId && typeof conv.contactId === "object") {
+    return conv.contactId as WhatsAppConversationContact;
+  }
+  return null;
+}
+
+function getInitials(name?: string, phone?: string): string {
+  if (name && name.trim()) {
+    return name
+      .trim()
+      .split(" ")
+      .map((p) => p[0] ?? "")
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
+  if (phone) {
+    return phone.replace(/\D/g, "").slice(-2) || "?";
+  }
+  return "?";
+}
+
+function formatTime(iso?: string): string {
+  if (!iso) return "";
+  try {
+    const date = new Date(iso);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    if (isToday) {
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    return date.toLocaleDateString([], { month: "short", day: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
+const avatarPalette = [
+  "bg-purple-100 text-purple-700",
+  "bg-blue-100 text-blue-700",
+  "bg-pink-100 text-pink-700",
+  "bg-amber-100 text-amber-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-indigo-100 text-indigo-700",
+];
 
 export default function ConversationList({
   conversations,
   selectedId,
+  isLoading,
   onSelect,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("All");
 
-  const filteredConversations = useMemo(() => {
-    return conversations.filter((conversation) => {
+  const filtered = useMemo(() => {
+    return conversations.filter((conv) => {
+      const contact = getContact(conv);
+      const name = contact?.profileName ?? contact?.phoneNumber ?? "";
+      const phone = contact?.phoneNumber ?? "";
+      const lastText = conv.lastMessage?.text ?? "";
+
       const matchesSearch =
-        conversation.name.toLowerCase().includes(search.toLowerCase()) ||
-        conversation.phone.includes(search) ||
-        conversation.lastMessage.toLowerCase().includes(search.toLowerCase());
+        !search.trim() ||
+        name.toLowerCase().includes(search.toLowerCase()) ||
+        phone.includes(search) ||
+        lastText.toLowerCase().includes(search.toLowerCase());
 
       const matchesFilter =
         filter === "All" ||
-        (filter === "Unread" && conversation.unread > 0) ||
-        (filter === "Assigned" && conversation.assignedTo !== "Unassigned");
+        (filter === "Open" && conv.status === "OPEN") ||
+        (filter === "Pending" && conv.status === "PENDING") ||
+        (filter === "Closed" && conv.status === "CLOSED");
 
       return matchesSearch && matchesFilter;
     });
@@ -42,9 +97,9 @@ export default function ConversationList({
       <div className="border-b border-slate-200 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Inbox</h1>
+            <h2 className="text-lg font-bold text-slate-900">Inbox</h2>
             <p className="mt-1 text-xs text-slate-500">
-              {conversations.length} demo conversations
+              {conversations.length} conversation{conversations.length === 1 ? "" : "s"}
             </p>
           </div>
 
@@ -55,18 +110,17 @@ export default function ConversationList({
 
         <div className="mt-4 flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3">
           <Search size={17} className="shrink-0 text-slate-400" />
-
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search conversations..."
             aria-label="Search conversations"
             className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-slate-400"
           />
         </div>
 
-        <div className="mt-3 flex gap-2">
-          {(["All", "Unread", "Assigned"] as const).map((item) => (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {(["All", "Open", "Pending", "Closed"] as FilterType[]).map((item) => (
             <button
               key={item}
               type="button"
@@ -84,79 +138,97 @@ export default function ConversationList({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {filteredConversations.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-0">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex gap-3 border-b border-slate-100 p-4">
+                <div className="h-11 w-11 shrink-0 animate-pulse rounded-full bg-slate-200" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-slate-200" />
+                  <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="p-8 text-center">
             <MessageCircle size={28} className="mx-auto text-slate-300" />
             <p className="mt-3 text-sm font-medium text-slate-700">
               No conversations found
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              Try another search or filter.
+              {conversations.length === 0
+                ? "Conversations appear here when customers message your WhatsApp number."
+                : "Try another search or filter."}
             </p>
           </div>
         ) : (
-          filteredConversations.map((conversation) => (
-            <button
-              key={conversation.id}
-              type="button"
-              onClick={() => onSelect(conversation.id)}
-              className={`flex w-full gap-3 border-b border-slate-100 p-4 text-left transition ${
-                selectedId === conversation.id
-                  ? "bg-green-50/80"
-                  : "hover:bg-slate-50"
-              }`}
-            >
-              <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xs font-bold ${conversation.color}`}
+          filtered.map((conv, index) => {
+            const contact = getContact(conv);
+            const name = contact?.profileName || contact?.phoneNumber || "Unknown";
+            const phone = contact?.phoneNumber ?? "";
+            const initials = getInitials(contact?.profileName, phone);
+            const colorClass = avatarPalette[index % avatarPalette.length];
+            const timeLabel = formatTime(conv.lastMessageAt ?? conv.updatedAt);
+            const lastText = conv.lastMessage?.text ?? "";
+            const isSelected = selectedId === conv._id;
+
+            return (
+              <button
+                key={conv._id}
+                type="button"
+                onClick={() => onSelect(conv._id)}
+                className={`flex w-full gap-3 border-b border-slate-100 p-4 text-left transition ${
+                  isSelected ? "bg-green-50/80" : "hover:bg-slate-50"
+                }`}
               >
-                {conversation.initials}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-sm font-semibold text-slate-800">
-                    {conversation.name}
-                  </p>
-
-                  <span className="shrink-0 text-[10px] text-slate-400">
-                    {conversation.lastMessageTime}
-                  </span>
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xs font-bold ${colorClass}`}
+                >
+                  {initials}
                 </div>
 
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <p className="truncate text-xs text-slate-500">
-                    {conversation.lastMessage}
-                  </p>
-
-                  {conversation.unread > 0 && (
-                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-green-600 px-1 text-[10px] font-bold text-white">
-                      {conversation.unread}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold text-slate-800">
+                      {name}
+                    </p>
+                    <span className="shrink-0 text-[10px] text-slate-400">
+                      {timeLabel}
                     </span>
-                  )}
-                </div>
+                  </div>
 
-                <div className="mt-2">
-                  <span
-                    className={`rounded-md px-2 py-1 text-[10px] font-medium ${
-                      conversation.status === "Open"
-                        ? "bg-green-50 text-green-700"
-                        : conversation.status === "Pending"
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
-                    {conversation.status}
-                  </span>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p className="truncate text-xs text-slate-500">
+                      {lastText || (
+                        <span className="italic text-slate-400">No messages yet</span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="mt-2">
+                    <span
+                      className={`rounded-md px-2 py-1 text-[10px] font-medium ${
+                        conv.status === "OPEN"
+                          ? "bg-green-50 text-green-700"
+                          : conv.status === "PENDING"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {conv.status}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))
+              </button>
+            );
+          })
         )}
       </div>
 
       <div className="border-t border-slate-200 p-3">
         <p className="text-center text-[10px] text-slate-400">
-          Sample data · Not connected to WhatsApp
+          {conversations.length} conversation{conversations.length === 1 ? "" : "s"} loaded
         </p>
       </div>
     </section>

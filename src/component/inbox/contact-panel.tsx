@@ -5,40 +5,112 @@ import {
   ChevronDown,
   ChevronUp,
   Clock3,
-  Mail,
+  Loader2,
   Phone,
   Tag,
   UserRound,
 } from "lucide-react";
-import { Conversation } from "@/src/data/mock/inbox";
+import type {
+  ConversationStatus,
+  WhatsAppConversationAssignee,
+  WhatsAppConversationContact,
+  WhatsAppConversationItem,
+} from "@/src/types/api";
 
 interface ContactPanelProps {
-  conversation: Conversation;
+  conversation: WhatsAppConversationItem;
+  onStatusChange: (conversationId: string, status: ConversationStatus) => Promise<void>;
 }
 
-export default function ContactPanel({ conversation }: ContactPanelProps) {
-  const [status, setStatus] = useState(conversation.status);
+function getContact(
+  conv: WhatsAppConversationItem,
+): WhatsAppConversationContact | null {
+  if (conv.contactId && typeof conv.contactId === "object") {
+    return conv.contactId as WhatsAppConversationContact;
+  }
+  return null;
+}
+
+function getAssignee(
+  conv: WhatsAppConversationItem,
+): WhatsAppConversationAssignee | null {
+  if (conv.assignedTo && typeof conv.assignedTo === "object") {
+    return conv.assignedTo as WhatsAppConversationAssignee;
+  }
+  return null;
+}
+
+function getInitials(name?: string, phone?: string): string {
+  if (name && name.trim()) {
+    return name
+      .trim()
+      .split(" ")
+      .map((p) => p[0] ?? "")
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
+  if (phone) {
+    return phone.replace(/\D/g, "").slice(-2) || "?";
+  }
+  return "?";
+}
+
+export default function ContactPanel({
+  conversation,
+  onStatusChange,
+}: ContactPanelProps) {
+  const [status, setStatus] = useState<ConversationStatus>(conversation.status);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(true);
+
+  const contact = getContact(conversation);
+  const assignee = getAssignee(conversation);
+  const displayName =
+    contact?.profileName || contact?.phoneNumber || "Unknown";
+  const initials = getInitials(contact?.profileName, contact?.phoneNumber);
+
+  async function handleStatusChange(
+    newStatus: ConversationStatus,
+  ) {
+    if (newStatus === status || isUpdating) return;
+
+    setIsUpdating(true);
+    try {
+      await onStatusChange(conversation._id, newStatus);
+      setStatus(newStatus);
+    } catch {
+      // revert optimistic update on failure — status stays as-is
+    } finally {
+      setIsUpdating(false);
+    }
+  }
 
   return (
     <aside className="h-full overflow-y-auto border-l border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-5 py-6 text-center">
-        <div
-          className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold ${conversation.color}`}
-        >
-          {conversation.initials}
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-purple-100 text-lg font-bold text-purple-700">
+          {initials}
         </div>
 
         <h2 className="mt-3 text-base font-bold text-slate-900">
-          {conversation.name}
+          {displayName}
         </h2>
 
         <p className="mt-1 text-xs font-semibold text-slate-500">
-          Customer profile{" "}
+          WhatsApp Contact
         </p>
 
-        <span className="mt-3 inline-flex rounded-full bg-green-50 px-3 py-1 text-[10px] font-semibold text-green-700">
-          Sample Contact
+        <span
+          className={`mt-3 inline-flex rounded-full px-3 py-1 text-[10px] font-semibold ${
+            status === "OPEN"
+              ? "bg-green-50 text-green-700"
+              : status === "PENDING"
+                ? "bg-amber-50 text-amber-700"
+                : "bg-slate-100 text-slate-500"
+          }`}
+        >
+          {status}
         </span>
       </div>
 
@@ -60,18 +132,18 @@ export default function ContactPanel({ conversation }: ContactPanelProps) {
               <div className="min-w-0">
                 <p className="text-[10px] text-slate-400">Phone number</p>
                 <p className="mt-1 break-words text-xs font-medium text-slate-700">
-                  {conversation.phone}
+                  {contact?.phoneNumber || "—"}
                 </p>
               </div>
             </div>
 
             <div className="flex gap-3">
-              <Mail size={17} className="shrink-0 text-slate-400" />
+              <Tag size={17} className="shrink-0 text-slate-400" />
 
               <div className="min-w-0">
-                <p className="text-[10px] text-slate-400">Email</p>
-                <p className="mt-1 break-words text-xs font-medium text-slate-700">
-                  Not provided
+                <p className="text-[10px] text-slate-400">WhatsApp ID</p>
+                <p className="mt-1 break-words text-xs font-mono text-slate-700">
+                  {contact?.waId || "—"}
                 </p>
               </div>
             </div>
@@ -82,7 +154,7 @@ export default function ContactPanel({ conversation }: ContactPanelProps) {
               <div className="min-w-0">
                 <p className="text-[10px] text-slate-400">Assigned to</p>
                 <p className="mt-1 text-xs font-medium text-slate-700">
-                  {conversation.assignedTo}
+                  {assignee ? `${assignee.name} (${assignee.email})` : "Unassigned"}
                 </p>
               </div>
             </div>
@@ -99,42 +171,30 @@ export default function ContactPanel({ conversation }: ContactPanelProps) {
           Conversation Status
         </label>
 
-        <select
-          id="conversation-status"
-          value={status}
-          onChange={(event) =>
-            setStatus(event.target.value as Conversation["status"])
-          }
-          className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
-        >
-          <option value="Open">Open</option>
-          <option value="Pending">Pending</option>
-          <option value="Resolved">Resolved</option>
-        </select>
+        <div className="relative mt-3">
+          <select
+            id="conversation-status"
+            value={status}
+            onChange={(e) =>
+              handleStatusChange(e.target.value as ConversationStatus)
+            }
+            disabled={isUpdating}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500 disabled:opacity-60"
+          >
+            <option value="OPEN">Open</option>
+            <option value="PENDING">Pending</option>
+            <option value="CLOSED">Closed</option>
+          </select>
 
-        <p className="mt-2 text-[10px] text-slate-400">
-          Local state only. Not saved to a server.
-        </p>
-      </div>
-
-      <div className="p-4">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-          <Tag size={16} className="text-slate-400" />
-          Contact Tags
-        </h3>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-[10px] font-medium text-blue-700">
-            Customer
-          </span>
-
-          <span className="rounded-lg bg-purple-50 px-2.5 py-1.5 text-[10px] font-medium text-purple-700">
-            WhatsApp
-          </span>
+          {isUpdating && (
+            <div className="pointer-events-none absolute inset-y-0 right-8 flex items-center">
+              <Loader2 size={14} className="animate-spin text-slate-400" />
+            </div>
+          )}
         </div>
 
-        <p className="mt-3 text-[10px] text-slate-400">
-          Sample tags for demonstration.
+        <p className="mt-2 text-[10px] text-slate-400">
+          Status changes are saved to the server immediately.
         </p>
       </div>
     </aside>
