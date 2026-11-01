@@ -40,7 +40,6 @@ export const navigationGroups: NavigationGroup[] = [
         label: "WhatsApp Inbox",
         href: "/inbox",
         icon: MessageCircle,
-        badge: "12",
       },
       {
         label: "Contacts",
@@ -102,6 +101,11 @@ export const navigationGroups: NavigationGroup[] = [
         href: "/support",
         icon: Headset,
       },
+    ],
+  },
+  {
+    title: "ADMINISTRATION",
+    items: [
       {
         label: "Super Admin",
         href: "/super-admin",

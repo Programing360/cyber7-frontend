@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageCircle, X, Zap } from "lucide-react";
+import { MessageCircle, X } from "lucide-react";
 import { navigationGroups } from "@/src/lib/navigation";
 
 interface SidebarProps {
@@ -101,8 +101,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                     >
                       <Icon
                         size={18}
-                        
-                        className={`shrink-0 ${isActive && "text-black "}`}
+                        className={`shrink-0 ${isActive ? "text-black " : ""}`}
                       />
 
                       <span
@@ -143,17 +142,33 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               Upgrade your workspace to unlock more capabilities.
             </p>
 
-            <button
-              type="button"
-              className="mt-3 w-full rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-green-50"
-            >
-              Explore Plans
-            </button>
+            <Link href={"/billing"}>
+              <button
+                type="button"
+                className="mt-3 w-full rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-green-50"
+              >
+                Explore Plans
+              </button>
+            </Link>
           </div>
 
-          {/* <p className="mt-4 text-center text-[10px] text-slate-500">
-            Cyber7 Demo · v0.1.0
-          </p> */}
+          <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-slate-500">
+            <Link
+              href="/privacy-policy"
+              onClick={onClose}
+              className="transition hover:text-slate-300"
+            >
+              Privacy Policy
+            </Link>
+            <span>•</span>
+            <Link
+              href="/support"
+              onClick={onClose}
+              className="transition hover:text-slate-300"
+            >
+              Support
+            </Link>
+          </div>
         </div>
       </aside>
     </>
