@@ -180,7 +180,7 @@ export default function AnalyticsPage() {
             <button
               type="button"
               onClick={exportReport}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#88da1c] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#72b41b]"
             >
               <Download size={17} />
               Export Report
@@ -188,7 +188,7 @@ export default function AnalyticsPage() {
           </div>
         </section>
         {/* Demo notice */}
-        <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+        <div className="flex items-start gap-3 rounded-2xl shadow-md bg-[#effbdd] p-4">
           <Activity size={19} className="mt-0.5 shrink-0 text-blue-600" />
 
           <div>
