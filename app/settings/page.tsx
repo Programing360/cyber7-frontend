@@ -239,7 +239,7 @@ export default function SettingsPage() {
       connectionStatus: "DISCONNECTED",
     }));
 
-    showToast("Demo only: WhatsApp connection requires backend integration.");
+    showToast(" WhatsApp connection requires backend integration.");
   }
 
   return (
