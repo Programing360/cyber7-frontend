@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   Activity,
   Bell,
@@ -28,6 +28,10 @@ import {
 } from "lucide-react";
 
 import DashboardLayout from "@/src/component/dashboard/dashboard-layout";
+import { useWorkspace } from "@/src/context/workspace-context";
+import { whatsappService } from "@/src/services/whatsapp-service";
+import type { WhatsAppConfigStatus } from "@/src/types/api";
+
 
 import {
   initialApiPreferences,
@@ -144,6 +148,22 @@ export default function SettingsPage() {
   const [showPhoneNumberId, setShowPhoneNumberId] = useState(false);
   const [showBusinessAccountId, setShowBusinessAccountId] = useState(false);
 
+  // Real WhatsApp connection status from backend
+  const { activeWorkspace } = useWorkspace();
+  const [waConfigStatus, setWaConfigStatus] = useState<WhatsAppConfigStatus | null>(null);
+  const [waConfigLoading, setWaConfigLoading] = useState(false);
+
+
+  // Fetch real WhatsApp config status when this tab is active
+  useEffect(() => {
+    if (activeTab !== "whatsapp" || !activeWorkspace?.id) return;
+    setWaConfigLoading(true);
+    whatsappService
+      .getConfigStatus(activeWorkspace.id)
+      .then((data) => setWaConfigStatus(data))
+      .catch(() => setWaConfigStatus(null))
+      .finally(() => setWaConfigLoading(false));
+  }, [activeTab, activeWorkspace?.id]);
   function showToast(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(""), 3000);
