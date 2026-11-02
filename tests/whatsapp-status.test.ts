@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import {
   deriveWhatsAppStatus,
   selectConfigForWorkspace,
+  validateWabaId,
 } from "../src/lib/whatsapp-status.ts";
 import type { WhatsAppConfigStatus } from "../src/types/api.ts";
 
@@ -146,5 +147,37 @@ describe("Workspace switching does not display stale configuration", () => {
     assert.equal(status.metaAppConfigured, false);
     assert.equal(status.workspaceAccountState, "none");
     assert.equal(status.callbackUrl, null);
+  });
+});
+
+describe("WhatsApp Business Account ID (WABA ID) validation", () => {
+  it("accepts valid numeric WABA IDs", () => {
+    const res = validateWabaId("100234567890123");
+    assert.equal(res.valid, true);
+    assert.equal(res.error, undefined);
+  });
+
+  it("accepts valid numeric WABA IDs with leading and trailing whitespace", () => {
+    const res = validateWabaId("  100234567890123  ");
+    assert.equal(res.valid, true);
+    assert.equal(res.error, undefined);
+  });
+
+  it("rejects non-numeric WABA IDs", () => {
+    const res = validateWabaId("WABA_INVALID_123");
+    assert.equal(res.valid, false);
+    assert.match(res.error!, /must contain only digits/i);
+  });
+
+  it("rejects too-short WABA IDs", () => {
+    const res = validateWabaId("1234");
+    assert.equal(res.valid, false);
+    assert.match(res.error!, /invalid whatsapp business account id/i);
+  });
+
+  it("rejects empty or whitespace-only WABA IDs", () => {
+    const res = validateWabaId("   ");
+    assert.equal(res.valid, false);
+    assert.match(res.error!, /invalid whatsapp business account id/i);
   });
 });

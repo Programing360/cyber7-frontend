@@ -9,6 +9,7 @@ import { ApiClientError } from "@/src/lib/api-client";
 import {
   deriveWhatsAppStatus,
   selectConfigForWorkspace,
+  validateWabaId,
 } from "@/src/lib/whatsapp-status";
 import {
   MessageCircle,
@@ -168,8 +169,11 @@ export default function WhatsAppIntegrationPage() {
       setErrorMessage("Invalid Phone Number ID");
       return;
     }
-    if (businessAccountId.trim().length < 5) {
-      setErrorMessage("Invalid WhatsApp Business Account ID");
+    const wabaValidation = validateWabaId(businessAccountId);
+    if (!wabaValidation.valid) {
+      setErrorMessage(
+        wabaValidation.error || "Invalid WhatsApp Business Account ID",
+      );
       return;
     }
     if (accessToken.trim().length < 20) {
@@ -692,7 +696,7 @@ export default function WhatsAppIntegrationPage() {
                       className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700"
                     >
                       <Hash size={15} className="text-slate-400" />
-                      WhatsApp Business Account ID
+                      WhatsApp Business Account ID (WABA ID)
                     </label>
                     <input
                       id="business-account-id"
@@ -703,6 +707,9 @@ export default function WhatsAppIntegrationPage() {
                       placeholder="e.g. 100234567890123"
                       className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20"
                     />
+                    <p className="mt-1 text-xs text-slate-500">
+                      Found in Meta Business Manager under Business Settings &rarr; Accounts &rarr; WhatsApp Accounts. Numeric ID only.
+                    </p>
                   </div>
 
                   <div>

@@ -93,3 +93,27 @@ export function deriveWhatsAppStatus(
     workspaceAccountState,
   };
 }
+
+/**
+ * Validates a WhatsApp Business Account ID (WABA ID).
+ * Must be numeric and at least 5 digits.
+ */
+export function validateWabaId(wabaId: string): {
+  valid: boolean;
+  error?: string;
+} {
+  const trimmed = wabaId.trim();
+  if (trimmed.length < 5) {
+    return {
+      valid: false,
+      error: "Invalid WhatsApp Business Account ID",
+    };
+  }
+  if (!/^\d+$/.test(trimmed)) {
+    return {
+      valid: false,
+      error: "WhatsApp Business Account ID must contain only digits",
+    };
+  }
+  return { valid: true };
+}
