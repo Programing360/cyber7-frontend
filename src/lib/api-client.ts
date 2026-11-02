@@ -102,7 +102,13 @@ class ApiClient {
   ): string {
     const base = (baseUrlOverride ?? this.defaultBaseUrl).replace(/\/+$/, "");
     const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-    const url = new URL(`${base}${cleanEndpoint}`);
+    const fullPath = `${base}${cleanEndpoint}`;
+    const url =
+      fullPath.startsWith("http://") || fullPath.startsWith("https://")
+        ? new URL(fullPath)
+        : typeof window !== "undefined"
+          ? new URL(fullPath, window.location.origin)
+          : new URL(fullPath, "http://localhost:3000");
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
