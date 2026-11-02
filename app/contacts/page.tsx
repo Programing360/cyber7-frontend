@@ -224,7 +224,7 @@ export default function ContactsPage() {
     try {
       const result = await contactService.listContacts({
         workspaceId: activeWorkspace.id,
-        limit: 200,
+        limit: 100,
       });
       setContacts(result.contacts);
     } catch (err) {
