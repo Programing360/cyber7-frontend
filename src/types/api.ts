@@ -271,6 +271,25 @@ export interface WhatsAppConfigStatus {
   };
 }
 
+
+export interface SendWhatsAppTemplateMessageInput {
+  conversationId: string;
+  templateId: string;
+  language?: string;
+  components?: Array<{
+    type: "header" | "body" | "button";
+    sub_type?: string;
+    index?: number;
+    parameters: Array<{
+      type: string;
+      text?: string;
+      image?: Record<string, unknown>;
+      document?: Record<string, unknown>;
+      video?: Record<string, unknown>;
+    }>;
+  }>;
+}
+
 export interface SendWhatsAppTextMessageInput {
   conversationId: string;
   text: string;
@@ -377,6 +396,11 @@ export interface WhatsAppContactItem {
   waId: string;
   phoneNumber: string;
   profileName?: string;
+  isOptedOut?: boolean;
+  optOutTimestamp?: string;
+  optOutSource?: "STOP_MESSAGE" | "USER_ACTION" | "API";
+  optInTimestamp?: string;
+  optInSource?: "START_MESSAGE" | "USER_ACTION" | "API";
   createdAt: string;
   updatedAt: string;
 }
@@ -441,6 +465,11 @@ export interface WhatsAppConversationContact {
   profileName?: string;
   phoneNumber: string;
   waId: string;
+  isOptedOut?: boolean;
+  optOutTimestamp?: string;
+  optOutSource?: string;
+  optInTimestamp?: string;
+  optInSource?: string;
 }
 
 export interface WhatsAppConversationAssignee {
@@ -463,6 +492,9 @@ export interface WhatsAppConversationItem {
   status: ConversationStatus;
   assignedTo?: WhatsAppConversationAssignee | string | null;
   lastMessageAt?: string;
+  lastCustomerMessageAt?: string;
+  isCustomerServiceWindowActive?: boolean;
+  customerServiceWindowExpiresAt?: string | null;
   createdAt: string;
   updatedAt: string;
   /** Enriched by service: latest message preview */

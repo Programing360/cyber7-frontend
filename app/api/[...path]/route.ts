@@ -47,6 +47,7 @@ const ALLOWED_ROUTES: readonly RouteDefinition[] = [
   { regex: /^whatsapp\/[a-zA-Z0-9_-]+\/conversations\/[a-zA-Z0-9_-]+\/status$/, methods: ["PATCH"] },
   { regex: /^whatsapp\/[a-zA-Z0-9_-]+\/conversations\/[a-zA-Z0-9_-]+\/messages$/, methods: ["GET"] },
   { regex: /^whatsapp\/[a-zA-Z0-9_-]+\/messages$/, methods: ["POST"] },
+  { regex: /^whatsapp\/[a-zA-Z0-9_-]+\/messages\/template$/, methods: ["POST"] },
   { regex: /^whatsapp\/[a-zA-Z0-9_-]+\/templates$/, methods: ["GET"] },
   { regex: /^whatsapp\/[a-zA-Z0-9_-]+\/templates\/sync$/, methods: ["POST"] },
   { regex: /^whatsapp\/[a-zA-Z0-9_-]+\/templates\/[a-zA-Z0-9_-]+$/, methods: ["GET"] },

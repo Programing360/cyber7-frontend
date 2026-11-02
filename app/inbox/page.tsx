@@ -228,6 +228,88 @@ export default function InboxPage() {
     }
   }
 
+  // ── Send template message handler ──────────────────────────────────────────
+
+  async function handleSendTemplateMessage(
+    templateId: string,
+    components?: unknown,
+    language?: string,
+  ) {
+    if (!activeWorkspace?.id || !selectedId || isSending) return;
+
+    const workspaceIdAtSend = activeWorkspace.id;
+    const conversationIdAtSend = selectedId;
+
+    setIsSending(true);
+    setSendError(null);
+
+    try {
+      const saved = await messageService.sendTemplateMessage({
+        workspaceId: workspaceIdAtSend,
+        conversationId: conversationIdAtSend,
+        templateId,
+        language,
+        components,
+      });
+
+      if (activeWorkspaceRef.current !== workspaceIdAtSend) {
+        return;
+      }
+
+      setMessages((prev) => {
+        const exists = prev.some((m) => m._id === saved._id);
+        if (exists) return prev;
+
+        const newMsg: WhatsAppMessageItem = {
+          _id: saved._id,
+          workspaceId: saved.workspaceId,
+          conversationId: saved.conversationId,
+          contactId: saved.contactId,
+          whatsappAccountId: saved.whatsappAccountId,
+          waMessageId: saved.waMessageId,
+          direction: saved.direction,
+          type: saved.type,
+          status: saved.status,
+          text: saved.text,
+          senderId: saved.senderId,
+          timestamp: saved.timestamp,
+          createdAt: saved.timestamp,
+          statusUpdatedAt: saved.statusUpdatedAt,
+        };
+
+        return [...prev, newMsg];
+      });
+
+      setConversations((prev) =>
+        prev.map((c) => {
+          if (c._id !== conversationIdAtSend) return c;
+          return {
+            ...c,
+            status: "OPEN",
+            lastMessageAt: saved.timestamp,
+            lastMessage: {
+              _id: saved._id,
+              text: saved.text,
+              type: saved.type,
+              direction: saved.direction,
+              status: saved.status,
+              timestamp: saved.timestamp,
+            },
+          };
+        }),
+      );
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to send template message. Please try again.";
+      setSendError(errorMessage);
+      throw err;
+    } finally {
+      setIsSending(false);
+    }
+  }
+
   // ── No workspace state ────────────────────────────────────────────────────
 
   if (!activeWorkspace) {
@@ -345,6 +427,8 @@ export default function InboxPage() {
                   isSending={isSending}
                   sendError={sendError}
                   onSendMessage={handleSendMessage}
+                  onSendTemplateMessage={handleSendTemplateMessage}
+                  workspaceId={activeWorkspace.id}
                   onDismissError={() => setSendError(null)}
                   onBack={() => setMobileChatOpen(false)}
                 />

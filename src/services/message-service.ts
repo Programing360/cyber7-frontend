@@ -9,7 +9,11 @@
  */
 
 import apiClient, { ApiClientError } from "../lib/api-client";
-import type { ApiResponse, WhatsAppSentMessageData } from "../types/api";
+import type {
+  ApiResponse,
+  WhatsAppSentMessageData,
+  SendWhatsAppTemplateMessageInput,
+} from "../types/api";
 
 export interface SendTextMessageInput {
   workspaceId: string;
@@ -33,6 +37,15 @@ function mapSendError(err: unknown): string {
   const msg = err.message.toLowerCase();
 
   // Backend-enforced business rule rejections
+  if (err.status === 422) {
+    if (msg.includes("opted out") || msg.includes("opt-out")) {
+      return "Cannot send message: Contact has opted out of WhatsApp communications.";
+    }
+    if (msg.includes("24") || msg.includes("window") || msg.includes("customer service")) {
+      return "The 24-hour customer service window has expired. You must use an approved WhatsApp template to re-engage this contact.";
+    }
+    return err.message;
+  }
   if (err.status === 400 && msg.includes("closed")) {
     return "This conversation is closed. Reopen it before sending a message.";
   }
@@ -109,6 +122,48 @@ export const messageService = {
       return response.data;
     } catch (err) {
       // Re-wrap with a clean, user-friendly message
+      const friendlyMessage = mapSendError(err);
+      throw new Error(friendlyMessage);
+    }
+  },
+
+  /**
+   * Send an approved WhatsApp template message through the backend.
+   *
+   * Endpoint: POST /whatsapp/:workspaceId/messages/template
+   */
+  async sendTemplateMessage({
+    workspaceId,
+    conversationId,
+    templateId,
+    language,
+    components,
+  }: {
+    workspaceId: string;
+    conversationId: string;
+    templateId: string;
+    language?: string;
+    components?: SendWhatsAppTemplateMessageInput["components"] | unknown;
+  }): Promise<WhatsAppSentMessageData> {
+    try {
+      const response = await apiClient.post<
+        ApiResponse<WhatsAppSentMessageData>
+      >(`/whatsapp/${workspaceId}/messages/template`, {
+        conversationId,
+        templateId,
+        language,
+        components,
+      });
+
+      if (!response.data) {
+        throw new ApiClientError({
+          message: "No message data returned from server.",
+          status: 500,
+        });
+      }
+
+      return response.data;
+    } catch (err) {
       const friendlyMessage = mapSendError(err);
       throw new Error(friendlyMessage);
     }

@@ -2,13 +2,17 @@
 
 import { useState } from "react";
 import {
+  AlertTriangle,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Clock,
   Clock3,
   Loader2,
   Phone,
   Tag,
   UserRound,
+  XCircle,
 } from "lucide-react";
 import type {
   ConversationStatus,
@@ -101,17 +105,24 @@ export default function ContactPanel({
           WhatsApp Contact
         </p>
 
-        <span
-          className={`mt-3 inline-flex rounded-full px-3 py-1 text-[10px] font-semibold ${
-            status === "OPEN"
-              ? "bg-green-50 text-green-700"
-              : status === "PENDING"
-                ? "bg-amber-50 text-amber-700"
-                : "bg-slate-100 text-slate-500"
-          }`}
-        >
-          {status}
-        </span>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+          <span
+            className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold ${
+              status === "OPEN"
+                ? "bg-green-50 text-green-700"
+                : status === "PENDING"
+                  ? "bg-amber-50 text-amber-700"
+                  : "bg-slate-100 text-slate-500"
+            }`}
+          >
+            {status}
+          </span>
+          {contact?.isOptedOut && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-bold text-red-700">
+              <XCircle size={11} /> Opted Out
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="border-b border-slate-200 p-4">
@@ -156,6 +167,36 @@ export default function ContactPanel({
                 <p className="mt-1 text-xs font-medium text-slate-700">
                   {assignee ? `${assignee.name} (${assignee.email})` : "Unassigned"}
                 </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Clock size={17} className="shrink-0 text-slate-400" />
+
+              <div className="min-w-0">
+                <p className="text-[10px] text-slate-400">24-Hour Service Window</p>
+                {conversation.isCustomerServiceWindowActive ? (
+                  <p className="mt-1 flex items-center gap-1 text-xs font-medium text-emerald-700">
+                    <CheckCircle2 size={13} className="shrink-0 text-emerald-600" />
+                    Active
+                  </p>
+                ) : (
+                  <p className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-700">
+                    <AlertTriangle size={13} className="shrink-0 text-amber-600" />
+                    Expired (Template required)
+                  </p>
+                )}
+                {conversation.customerServiceWindowExpiresAt && (
+                  <p className="mt-0.5 text-[10px] text-slate-400">
+                    {conversation.isCustomerServiceWindowActive ? "Expires: " : "Expired: "}
+                    {new Date(conversation.customerServiceWindowExpiresAt).toLocaleTimeString([], {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                )}
               </div>
             </div>
           </div>
