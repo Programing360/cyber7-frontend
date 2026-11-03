@@ -4,7 +4,10 @@ import { useEffect, useState, useTransition } from "react";
 import DashboardLayout from "@/src/component/dashboard/dashboard-layout";
 import { useWorkspace } from "@/src/context/workspace-context";
 import { whatsappService } from "@/src/services/whatsapp-service";
-import type { WhatsAppAccountItem, WhatsAppConfigStatus } from "@/src/types/api";
+import type {
+  WhatsAppAccountItem,
+  WhatsAppConfigStatus,
+} from "@/src/types/api";
 import { ApiClientError } from "@/src/lib/api-client";
 import {
   deriveWhatsAppStatus,
@@ -72,7 +75,7 @@ export default function WhatsAppIntegrationPage() {
     connectedAccounts: accounts.filter((acc) => acc.status === "CONNECTED")
       .length,
   });
-
+  // console.log(status);
   const backendCallbackUrl = status.callbackUrl;
 
   // Fetch accounts and config status on workspace change
@@ -101,11 +104,11 @@ export default function WhatsAppIntegrationPage() {
           whatsappService.getConfigStatus(workspaceId).catch(() => null),
         ]);
 
+        // console.log(accountsData);
+
         if (isMounted) {
           setAccounts(accountsData);
-          setConfigState(
-            configData ? { workspaceId, data: configData } : null,
-          );
+          setConfigState(configData ? { workspaceId, data: configData } : null);
         }
       } catch (err) {
         if (isMounted) {
@@ -152,7 +155,9 @@ export default function WhatsAppIntegrationPage() {
     }
 
     if (!canManage) {
-      setErrorMessage("You do not have permission to connect WhatsApp accounts");
+      setErrorMessage(
+        "You do not have permission to connect WhatsApp accounts",
+      );
       return;
     }
 
@@ -222,7 +227,9 @@ export default function WhatsAppIntegrationPage() {
 
   async function handleDisconnect(accountId: string) {
     if (!activeWorkspace?.id) return;
-    if (!confirm("Are you sure you want to disconnect this WhatsApp account?")) {
+    if (
+      !confirm("Are you sure you want to disconnect this WhatsApp account?")
+    ) {
       return;
     }
 
@@ -231,10 +238,7 @@ export default function WhatsAppIntegrationPage() {
 
     startTransition(async () => {
       try {
-        await whatsappService.disconnectAccount(
-          activeWorkspace.id,
-          accountId,
-        );
+        await whatsappService.disconnectAccount(activeWorkspace.id, accountId);
         setAccounts((prev) =>
           prev.filter((acc) => (acc.id || acc._id) !== accountId),
         );
@@ -308,7 +312,7 @@ export default function WhatsAppIntegrationPage() {
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
             Connect your WhatsApp Business Platform to manage messages,
-            contacts, campaigns, and automated conversations from Cyber7.
+            contacts, campaigns, and automated conversations from VexChat.
           </p>
         </div>
 
@@ -338,10 +342,7 @@ export default function WhatsAppIntegrationPage() {
 
         {!canManage && !workspaceLoading && (
           <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            <AlertCircle
-              size={18}
-              className="mt-0.5 shrink-0 text-amber-600"
-            />
+            <AlertCircle size={18} className="mt-0.5 shrink-0 text-amber-600" />
             <div>
               <p className="font-semibold">Read-Only Permission</p>
               <p className="mt-0.5">
@@ -362,12 +363,13 @@ export default function WhatsAppIntegrationPage() {
                 Meta Developer App
               </div>
               <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${!status.hasConfigData
+                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  !status.hasConfigData
                     ? "bg-slate-100 text-slate-600"
                     : status.metaAppConfigured
                       ? "bg-green-100 text-green-700"
                       : "bg-amber-100 text-amber-700"
-                  }`}
+                }`}
               >
                 {!status.hasConfigData
                   ? "Unknown"
@@ -392,12 +394,13 @@ export default function WhatsAppIntegrationPage() {
                 Webhook Configuration
               </div>
               <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${status.webhookState === "verified"
+                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  status.webhookState === "verified"
                     ? "bg-green-100 text-green-700"
                     : status.webhookState === "listening"
                       ? "bg-amber-100 text-amber-700"
                       : "bg-slate-100 text-slate-600"
-                  }`}
+                }`}
               >
                 {status.webhookState === "verified"
                   ? "Verified"
@@ -422,12 +425,13 @@ export default function WhatsAppIntegrationPage() {
                 Workspace Accounts
               </div>
               <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${status.workspaceAccountState === "connected"
+                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  status.workspaceAccountState === "connected"
                     ? "bg-green-100 text-green-700"
                     : status.workspaceAccountState === "disconnected"
                       ? "bg-amber-100 text-amber-700"
                       : "bg-slate-100 text-slate-600"
-                  }`}
+                }`}
               >
                 {status.workspaceAccountState === "connected"
                   ? `${status.connectedAccounts} Connected`
@@ -462,7 +466,8 @@ export default function WhatsAppIntegrationPage() {
               </div>
 
               <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${isLoading
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  isLoading
                     ? "bg-slate-100 text-slate-600"
                     : isConnected
                       ? "bg-green-100 text-green-700"
@@ -473,7 +478,7 @@ export default function WhatsAppIntegrationPage() {
                           : primaryAccount?.status === "PENDING"
                             ? "bg-amber-100 text-amber-700"
                             : "bg-amber-100 text-amber-700"
-                  }`}
+                }`}
               >
                 {isLoading
                   ? "Loading..."
@@ -507,10 +512,7 @@ export default function WhatsAppIntegrationPage() {
               </div>
 
               <div className="flex items-start gap-3">
-                <Phone
-                  size={20}
-                  className="mt-0.5 shrink-0 text-slate-400"
-                />
+                <Phone size={20} className="mt-0.5 shrink-0 text-slate-400" />
                 <div>
                   <p className="text-sm font-semibold text-slate-800">
                     Business phone number
@@ -535,10 +537,11 @@ export default function WhatsAppIntegrationPage() {
                       </p>
                     </div>
                     <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${primaryAccount.status === "CONNECTED"
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        primaryAccount.status === "CONNECTED"
                           ? "bg-green-100 text-green-700"
                           : "bg-slate-200 text-slate-700"
-                        }`}
+                      }`}
                     >
                       {primaryAccount.status}
                     </span>
@@ -708,7 +711,8 @@ export default function WhatsAppIntegrationPage() {
                       className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20"
                     />
                     <p className="mt-1 text-xs text-slate-500">
-                      Found in Meta Business Manager under Business Settings &rarr; Accounts &rarr; WhatsApp Accounts. Numeric ID only.
+                      Found in Meta Business Manager under Business Settings
+                      &rarr; Accounts &rarr; WhatsApp Accounts. Numeric ID only.
                     </p>
                   </div>
 
@@ -732,9 +736,9 @@ export default function WhatsAppIntegrationPage() {
                   </div>
 
                   <p className="text-xs leading-5 text-slate-500">
-                    The backend verifies credentials directly with Meta Graph API
-                    before saving. Tokens are encrypted using AES-256 and never
-                    stored in local storage.
+                    The backend verifies credentials directly with Meta Graph
+                    API before saving. Tokens are encrypted using AES-256 and
+                    never stored in local storage.
                   </p>
 
                   <div className="flex gap-2 pt-2">
@@ -769,9 +773,9 @@ export default function WhatsAppIntegrationPage() {
                   className="mt-0.5 shrink-0 text-slate-500"
                 />
                 <p className="text-xs leading-5 text-slate-600">
-                  Real API credentials require a verified Meta Developer App
-                  and WhatsApp Business Cloud API access. For sandbox testing,
-                  use test numbers provided in your Meta App Dashboard.
+                  Real API credentials require a verified Meta Developer App and
+                  WhatsApp Business Cloud API access. For sandbox testing, use
+                  test numbers provided in your Meta App Dashboard.
                 </p>
               </div>
             </div>
@@ -794,12 +798,13 @@ export default function WhatsAppIntegrationPage() {
               </div>
 
               <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${status.webhookState === "verified"
+                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  status.webhookState === "verified"
                     ? "bg-green-100 text-green-700"
                     : status.webhookState === "listening"
                       ? "bg-amber-100 text-amber-700"
                       : "bg-slate-100 text-slate-600"
-                  }`}
+                }`}
               >
                 {status.webhookState === "verified"
                   ? "Verified"
@@ -857,8 +862,9 @@ export default function WhatsAppIntegrationPage() {
                 <AlertCircle size={14} className="mt-0.5 shrink-0" />
                 <span>
                   No public HTTPS callback URL is configured. Set{" "}
-                  <code className="font-mono">WEBHOOK_PUBLIC_URL</code> (preferred)
-                  or <code className="font-mono">PUBLIC_API_URL</code> on the
+                  <code className="font-mono">WEBHOOK_PUBLIC_URL</code>{" "}
+                  (preferred) or{" "}
+                  <code className="font-mono">PUBLIC_API_URL</code> on the
                   backend. Localhost and plain HTTP URLs are never accepted by
                   Meta.
                 </span>
@@ -875,7 +881,7 @@ export default function WhatsAppIntegrationPage() {
                 <li>
                   Open your Meta App Dashboard, then go to{" "}
                   <span className="font-medium text-slate-800">
-                    WhatsApp &rarr; Configuration
+                    WhatsApp & Configuration
                   </span>
                   .
                 </li>
@@ -897,9 +903,12 @@ export default function WhatsAppIntegrationPage() {
                   server and is never displayed here.
                 </li>
                 <li>
-                  Subscribe to the{" "}
-                  <code className="font-mono">messages</code> webhook field, then
-                  click <span className="font-medium text-slate-800">Verify and Save</span>.
+                  Subscribe to the <code className="font-mono">messages</code>{" "}
+                  webhook field, then click{" "}
+                  <span className="font-medium text-slate-800">
+                    Verify and Save
+                  </span>
+                  .
                 </li>
                 <li>
                   Confirm the status above changes to{" "}
@@ -972,10 +981,7 @@ export default function WhatsAppIntegrationPage() {
               </div>
             ) : accounts.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center">
-                <MessageCircle
-                  size={32}
-                  className="mx-auto text-slate-300"
-                />
+                <MessageCircle size={32} className="mx-auto text-slate-300" />
                 <p className="mt-2 text-sm font-medium text-slate-700">
                   No WhatsApp accounts connected
                 </p>
@@ -1011,10 +1017,11 @@ export default function WhatsAppIntegrationPage() {
 
                       <div className="flex items-center gap-3">
                         <span
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${acc.status === "CONNECTED"
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            acc.status === "CONNECTED"
                               ? "bg-green-100 text-green-700"
                               : "bg-slate-100 text-slate-700"
-                            }`}
+                          }`}
                         >
                           {acc.status}
                         </span>

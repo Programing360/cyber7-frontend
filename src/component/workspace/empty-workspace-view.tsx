@@ -53,7 +53,7 @@ export default function EmptyWorkspaceView() {
               Create Your Workspace
             </h1>
             <p className="text-xs text-slate-500">
-              Cyber7 Multi-Tenant Environment
+              VexChat Multi-Tenant Environment
             </p>
           </div>
         </div>
@@ -64,7 +64,7 @@ export default function EmptyWorkspaceView() {
         </div>
 
         <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-          Welcome to Cyber7
+          Welcome to VexChat
         </h2>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">

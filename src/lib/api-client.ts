@@ -1,5 +1,5 @@
 /**
- * Centralized API Client for Cyber7
+ * Centralized API Client for VexChat
  *
  * Provides a strongly typed, decoupled HTTP client built on native fetch.
  * Automatically injects JWT Bearer tokens via a configurable token getter abstraction.

@@ -37,14 +37,14 @@ webhookEvents: string[];
 }
 
 export const initialBusinessProfile: BusinessProfile = {
-businessName: "Cyber7 Demo Business",
-businessEmail: "[hello@cyber7.demo](mailto:hello@cyber7.demo)",
+businessName: "VexChat Demo Business",
+businessEmail: "[hello@vexchat.demo](mailto:hello@vexchat.demo)",
 phoneNumber: "+880 1700-000000",
 website: "https://example.com",
 industry: "Technology",
 timezone: "Asia/Dhaka",
 country: "Bangladesh",
-description: "A demo business workspace for Cyber7.",
+description: "A demo business workspace for VexChat.",
 };
 
 export const initialWhatsAppConfiguration: WhatsAppConfiguration = {

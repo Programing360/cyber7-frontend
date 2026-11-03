@@ -32,6 +32,8 @@ interface ChatWindowProps {
   isLoadingMessages: boolean;
   isSending: boolean;
   sendError: string | null;
+  messagesError?: string | null;
+  onRetryMessages?: () => void;
   onSendMessage: (text: string) => Promise<void>;
   onSendTemplateMessage?: (
     templateId: string,
@@ -99,6 +101,8 @@ export default function ChatWindow({
   isLoadingMessages,
   isSending,
   sendError,
+  messagesError,
+  onRetryMessages,
   onSendMessage,
   onSendTemplateMessage,
   onDismissError,
@@ -113,9 +117,14 @@ export default function ChatWindow({
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [templates, setTemplates] = useState<WhatsAppTemplateItem[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<WhatsAppTemplateItem | null>(null);
-  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
-  const [templateSendError, setTemplateSendError] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<WhatsAppTemplateItem | null>(null);
+  const [variableValues, setVariableValues] = useState<Record<string, string>>(
+    {},
+  );
+  const [templateSendError, setTemplateSendError] = useState<string | null>(
+    null,
+  );
   const [isSendingTemplate, setIsSendingTemplate] = useState(false);
 
   const contact = getContact(conversation);
@@ -125,9 +134,15 @@ export default function ChatWindow({
 
   const isClosed = conversation.status === "CLOSED";
   const isOptedOut = contact?.isOptedOut ?? false;
-  const isServiceWindowActive = conversation.isCustomerServiceWindowActive ?? false;
+  const isServiceWindowActive =
+    conversation.isCustomerServiceWindowActive ?? false;
 
-  const canSendFreeform = !isSending && !isClosed && !isOptedOut && isServiceWindowActive && text.trim().length > 0;
+  const canSendFreeform =
+    !isSending &&
+    !isClosed &&
+    !isOptedOut &&
+    isServiceWindowActive &&
+    text.trim().length > 0;
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -166,7 +181,8 @@ export default function ChatWindow({
   function handleSelectTemplate(tmpl: WhatsAppTemplateItem) {
     setSelectedTemplate(tmpl);
     setTemplateSendError(null);
-    const varCount = tmpl.variables?.length || (tmpl.body.match(/\{\{\d+\}\}/g) || []).length;
+    const varCount =
+      tmpl.variables?.length || (tmpl.body.match(/\{\{\d+\}\}/g) || []).length;
     const initialVars: Record<string, string> = {};
     for (let i = 1; i <= varCount; i++) {
       initialVars[String(i)] = "";
@@ -178,7 +194,14 @@ export default function ChatWindow({
 
   async function handleSend() {
     const trimmed = text.trim();
-    if (!trimmed || isSending || isClosed || isOptedOut || !isServiceWindowActive) return;
+    if (
+      !trimmed ||
+      isSending ||
+      isClosed ||
+      isOptedOut ||
+      !isServiceWindowActive
+    )
+      return;
 
     try {
       await onSendMessage(trimmed);
@@ -189,7 +212,8 @@ export default function ChatWindow({
   }
 
   async function handleSendTemplate() {
-    if (!selectedTemplate || !onSendTemplateMessage || isSendingTemplate) return;
+    if (!selectedTemplate || !onSendTemplateMessage || isSendingTemplate)
+      return;
 
     setIsSendingTemplate(true);
     setTemplateSendError(null);
@@ -199,7 +223,9 @@ export default function ChatWindow({
       const missingKeys = paramKeys.filter((k) => !variableValues[k]?.trim());
 
       if (missingKeys.length > 0) {
-        setTemplateSendError(`Please provide a value for variable {{${missingKeys[0]}}}`);
+        setTemplateSendError(
+          `Please provide a value for variable {{${missingKeys[0]}}}`,
+        );
         setIsSendingTemplate(false);
         return;
       }
@@ -209,7 +235,8 @@ export default function ChatWindow({
         text: variableValues[k],
       }));
 
-      const components = params.length > 0 ? [{ type: "body", parameters: params }] : undefined;
+      const components =
+        params.length > 0 ? [{ type: "body", parameters: params }] : undefined;
 
       await onSendTemplateMessage(
         selectedTemplate._id,
@@ -283,10 +310,10 @@ export default function ChatWindow({
           {/* 24-hour service window badge */}
           {!isOptedOut && isServiceWindowActive && (
             <span
-              className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 border border-emerald-200"
+              className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-900 px-2.5 py-1 text-[10px] font-bold text-white border border-emerald-200"
               title="24-hour customer service window is open. Free-form messaging available."
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-800 animate-pulse" />
               24h Window Active
             </span>
           )}
@@ -334,7 +361,24 @@ export default function ChatWindow({
       {/* Message history */}
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto max-w-3xl">
-          {isLoadingMessages ? (
+          {messagesError ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center text-red-500">
+              <AlertCircle size={32} className="text-red-400" />
+              <p className="mt-3 text-sm font-semibold text-red-700">
+                Failed to load messages
+              </p>
+              <p className="mt-1 text-xs text-red-500">{messagesError}</p>
+              {onRetryMessages && (
+                <button
+                  type="button"
+                  onClick={onRetryMessages}
+                  className="mt-3 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200 transition"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          ) : isLoadingMessages ? (
             <div className="flex flex-col items-center justify-center py-12 text-slate-400">
               <Loader2 size={28} className="animate-spin" />
               <p className="mt-3 text-sm">Loading messages…</p>
@@ -345,9 +389,21 @@ export default function ChatWindow({
               <p className="mt-3 text-sm font-medium text-slate-600">
                 No messages yet
               </p>
-              <p className="mt-1 text-xs text-slate-400">
-                Messages will appear here when this contact sends a message.
+              <p className="mt-1 max-w-sm text-xs text-slate-400">
+                {isServiceWindowActive
+                  ? "Type a message below or send an approved template to chat with this contact."
+                  : "The 24-hour customer service window is closed. Send an approved template message below to start."}
               </p>
+              {!isOptedOut && onSendTemplateMessage && (
+                <button
+                  type="button"
+                  onClick={() => setIsTemplateModalOpen(true)}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                >
+                  <FileText size={14} className="text-slate-500" />
+                  <span>Send Template</span>
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -417,10 +473,7 @@ export default function ChatWindow({
       {sendError && (
         <div className="shrink-0 border-t border-red-100 bg-red-50 px-4 py-2">
           <div className="mx-auto flex max-w-3xl items-start gap-2">
-            <AlertCircle
-              size={15}
-              className="mt-0.5 shrink-0 text-red-500"
-            />
+            <AlertCircle size={15} className="mt-0.5 shrink-0 text-red-500" />
             <p className="flex-1 text-xs text-red-700">{sendError}</p>
             <button
               type="button"
@@ -442,7 +495,8 @@ export default function ChatWindow({
             <div className="mb-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-800">
               <AlertCircle size={15} className="shrink-0 text-red-600" />
               <span>
-                This contact has opted out of WhatsApp communications (STOP). All outgoing messages are blocked.
+                This contact has opted out of WhatsApp communications (STOP).
+                All outgoing messages are blocked.
               </span>
             </div>
           )}
@@ -453,7 +507,8 @@ export default function ChatWindow({
               <div className="flex items-center gap-2 min-w-0">
                 <Clock size={15} className="shrink-0 text-amber-600" />
                 <span className="truncate">
-                  24-hour service window expired. Send an approved template message to re-engage.
+                  24-hour service window expired. Send an approved template
+                  message to re-engage.
                 </span>
               </div>
               {onSendTemplateMessage && (
@@ -492,7 +547,9 @@ export default function ChatWindow({
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isClosed || isSending || isOptedOut || !isServiceWindowActive}
+              disabled={
+                isClosed || isSending || isOptedOut || !isServiceWindowActive
+              }
               placeholder={composerPlaceholder}
               aria-label="Type a message"
               className="max-h-32 min-h-10 flex-1 resize-y bg-transparent px-1 py-2 text-sm outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:placeholder:text-slate-300"
@@ -537,7 +594,8 @@ export default function ChatWindow({
 
           {isClosed ? (
             <p className="mt-2 text-center text-[10px] text-amber-600">
-              This conversation is closed. Change the status to Open to send messages.
+              This conversation is closed. Change the status to Open to send
+              messages.
             </p>
           ) : isOptedOut ? (
             <p className="mt-2 text-center text-[10px] text-red-500 font-medium">
@@ -545,11 +603,13 @@ export default function ChatWindow({
             </p>
           ) : isServiceWindowActive ? (
             <p className="mt-2 text-center text-[10px] text-slate-400">
-              Enter to send · Shift+Enter for new line · Free-form messages available within 24h of customer message
+              Enter to send · Shift+Enter for new line · Free-form messages
+              available within 24h of customer message
             </p>
           ) : (
             <p className="mt-2 text-center text-[10px] text-amber-600">
-              Free-form replies disabled outside 24h window. Use the Templates button to send an approved template.
+              Free-form replies disabled outside 24h window. Use the Templates
+              button to send an approved template.
             </p>
           )}
         </div>
@@ -580,7 +640,10 @@ export default function ChatWindow({
             <div className="p-5 max-h-[70vh] overflow-y-auto space-y-4">
               {templateSendError && (
                 <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700">
-                  <AlertCircle size={15} className="shrink-0 text-red-500 mt-0.5" />
+                  <AlertCircle
+                    size={15}
+                    className="shrink-0 text-red-500 mt-0.5"
+                  />
                   <span>{templateSendError}</span>
                 </div>
               )}
@@ -592,9 +655,12 @@ export default function ChatWindow({
                 </div>
               ) : templates.length === 0 ? (
                 <div className="py-8 text-center text-slate-500">
-                  <p className="text-sm font-medium">No approved templates found</p>
+                  <p className="text-sm font-medium">
+                    No approved templates found
+                  </p>
                   <p className="mt-1 text-xs text-slate-400">
-                    Sync or create approved templates in your WhatsApp account settings.
+                    Sync or create approved templates in your WhatsApp account
+                    settings.
                   </p>
                 </div>
               ) : (
@@ -606,7 +672,9 @@ export default function ChatWindow({
                     <select
                       value={selectedTemplate?._id || ""}
                       onChange={(e) => {
-                        const found = templates.find((t) => t._id === e.target.value);
+                        const found = templates.find(
+                          (t) => t._id === e.target.value,
+                        );
                         if (found) handleSelectTemplate(found);
                       }}
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-green-500"
@@ -677,7 +745,9 @@ export default function ChatWindow({
               <button
                 type="button"
                 onClick={handleSendTemplate}
-                disabled={!selectedTemplate || isSendingTemplate || isLoadingTemplates}
+                disabled={
+                  !selectedTemplate || isSendingTemplate || isLoadingTemplates
+                }
                 className="rounded-lg bg-green-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-green-700 disabled:opacity-40 flex items-center gap-1.5"
               >
                 {isSendingTemplate ? (

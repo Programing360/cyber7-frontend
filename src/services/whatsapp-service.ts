@@ -113,7 +113,7 @@ export const whatsappService = {
     if (!response.data) {
       throw new Error("Failed to fetch WhatsApp configuration status");
     }
-
+    // console.log(response);
     return response.data;
   },
 };

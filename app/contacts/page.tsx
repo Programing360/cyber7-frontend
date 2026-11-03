@@ -366,7 +366,7 @@ export default function ContactsPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "cyber7-contacts.csv";
+    link.download = "vexchat-contacts.csv";
     link.click();
     URL.revokeObjectURL(url);
   }

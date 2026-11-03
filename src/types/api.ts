@@ -1,8 +1,8 @@
 /**
- * Cyber7 Shared API Types & Request/Response Contracts
+ * VexChat Shared API Types & Request/Response Contracts
  *
  * Strictly models actual backend entities, schemas, and response formats
- * implemented in cyber7-backend.
+ * implemented in vexchat-backend.
  */
 
 // ─── Generic Response Envelopes ─────────────────────────────────────────────

@@ -252,7 +252,7 @@ export default function SuperAdminPage() {
               {" "}
               <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
                 {" "}
-                <span>Cyber7</span> <span>/</span>{" "}
+                <span>VexChat</span> <span>/</span>{" "}
                 <span className="font-medium text-slate-800">
                   Super Admin{" "}
                 </span>{" "}
@@ -887,7 +887,7 @@ export default function SuperAdminPage() {
             </div>
           </section>
           <footer className="border-t border-slate-200 pt-5 text-xs text-slate-400">
-            Cyber7 Super Admin · environment 
+            VexChat Super Admin · environment 
           </footer>
         </div>
         {/* User details modal */}

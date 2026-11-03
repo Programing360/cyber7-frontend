@@ -42,7 +42,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             </div>
 
             <div>
-              <h1 className="text-lg font-bold tracking-tight">Cyber7</h1>
+              <h1 className="text-lg font-bold tracking-tight">VexChat</h1>
               <p className="text-[11px] text-slate-400">Business Messaging</p>
             </div>
           </Link>

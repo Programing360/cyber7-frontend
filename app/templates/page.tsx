@@ -913,7 +913,7 @@ export default function TemplatesPage() {
                   {metaDialog.action === "edit" &&
                     `The template "${metaDialog.templateName}" must be edited directly in your Meta WhatsApp Business Account to preserve Meta compliance and approval.`}
                   {metaDialog.action === "delete" &&
-                    `To delete "${metaDialog.templateName}", remove it from your Meta WhatsApp Business Manager. Then click "Sync with Meta" to update Cyber7.`}
+                    `To delete "${metaDialog.templateName}", remove it from your Meta WhatsApp Business Manager. Then click "Sync with Meta" to update VexChat.`}
                 </p>
               </div>
 

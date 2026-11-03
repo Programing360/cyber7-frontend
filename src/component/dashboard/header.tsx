@@ -70,7 +70,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               className="flex items-center gap-1.5 rounded-lg px-2 py-1 font-semibold text-slate-800 transition hover:bg-slate-100"
             >
               <span className="max-w-[140px] truncate md:max-w-[200px]">
-                {activeWorkspace?.name || "Cyber7"}
+                {activeWorkspace?.name || "VexChat"}
               </span>
               <ChevronDown size={14} className="text-slate-400" />
             </button>

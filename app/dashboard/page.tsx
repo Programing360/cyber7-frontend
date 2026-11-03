@@ -312,7 +312,7 @@ export default function DashboardPage() {
 
         {/* Footer note */}
         <div className="mt-6 flex flex-col justify-between gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row">
-          <p>Cyber7 · WhatsApp Business Platform</p>
+          <p>VexChat · WhatsApp Business Platform</p>
 
           <p>Workspace-scoped live statistics.</p>
         </div>

@@ -30,7 +30,39 @@ export interface ListMessagesParams {
   limit?: number;
 }
 
+export interface CreateConversationParams {
+  workspaceId: string;
+  contactId?: string;
+  phoneNumber?: string;
+  profileName?: string;
+}
+
 export const conversationService = {
+  /**
+   * Create or retrieve an existing conversation with a contact or phone number.
+   * POST /whatsapp/:workspaceId/conversations
+   */
+  async createConversation({
+    workspaceId,
+    contactId,
+    phoneNumber,
+    profileName,
+  }: CreateConversationParams): Promise<WhatsAppConversationItem> {
+    const response = await apiClient.post<
+      ApiResponse<WhatsAppConversationItem>
+    >(`/whatsapp/${workspaceId}/conversations`, {
+      contactId,
+      phoneNumber,
+      profileName,
+    });
+
+    if (!response.data) {
+      throw new Error("Failed to create conversation");
+    }
+
+    return response.data;
+  },
+
   /**
    * List conversations in a workspace with optional status filter and search.
    * GET /whatsapp/:workspaceId/conversations

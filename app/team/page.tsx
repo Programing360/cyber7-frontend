@@ -898,7 +898,7 @@ function TeamPageContent() {
                 ? `${filteredMembers.length} members`
                 : `${filteredInvitations.length} pending invitations`}
             </span>
-            <span>Cyber7 Multi-Tenant Team Governance</span>
+            <span>VexChat Multi-Tenant Team Governance</span>
           </div>
         </section>
       </div>

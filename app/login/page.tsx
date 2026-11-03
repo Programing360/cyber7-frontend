@@ -79,7 +79,7 @@ export default function LoginPage() {
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight text-white">
-                Cyber7
+                VexChat
               </span>
               <span className="ml-2 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400 border border-emerald-500/20">
                 v2.0
@@ -145,7 +145,7 @@ export default function LoginPage() {
 
           {/* Bottom Footer Information */}
           <div className="relative z-10 flex items-center justify-between text-xs text-slate-400">
-            <p>© Cyber7 Inc. All rights reserved.</p>
+            <p>© VexChat Inc. All rights reserved.</p>
             <div className="flex gap-4">
               <Link
                 href="/privacy-policy"
@@ -169,7 +169,7 @@ export default function LoginPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white">
                 <MessageCircle size={22} />
               </div>
-              <span className="text-lg font-bold text-slate-900">Cyber7</span>
+              <span className="text-lg font-bold text-slate-900">VexChat</span>
             </Link>
 
             <Link
@@ -193,7 +193,7 @@ export default function LoginPage() {
               Welcome back
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              Enter your credentials to access your Cyber7 dashboard workspace.
+              Enter your credentials to access your VexChat dashboard workspace.
             </p>
 
             {/* Error Message Box */}
@@ -329,7 +329,7 @@ export default function LoginPage() {
 
           {/* Footer for Mobile / Small Screens */}
           <div className="block lg:hidden border-t border-slate-100 pt-6 text-center text-xs text-slate-400">
-            <p>© Cyber7. All rights reserved.</p>
+            <p>© VexChat. All rights reserved.</p>
           </div>
         </section>
       </div>

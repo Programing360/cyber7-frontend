@@ -23,7 +23,7 @@ function createConfig(
     webhook: {
       configured: true,
       verified: true,
-      callbackUrl: "https://api.example.com/api/whatsapp/webhook",
+      callbackUrl: "https://cyber7-backend.vercel.app/api/whatsapp/webhook",
     },
     workspaceAccount: { totalAccounts: 1, connectedAccounts: 1 },
     ...overrides,
@@ -37,7 +37,7 @@ describe("Platform status is independent of workspace accounts", () => {
         workspaceAccount: { totalAccounts: 0, connectedAccounts: 0 },
       }),
     );
-
+    console.log(status);
     assert.equal(status.metaAppConfigured, true);
     assert.equal(status.workspaceAccountState, "none");
     assert.equal(status.totalAccounts, 0);
@@ -92,7 +92,7 @@ describe("Webhook display state", () => {
         webhook: {
           configured: true,
           verified: false,
-          callbackUrl: "https://api.example.com/api/whatsapp/webhook",
+          callbackUrl: "https://cyber7-backend.vercel.app/api/whatsapp/webhook",
         },
       }),
     );
@@ -121,7 +121,11 @@ describe("Workspace switching does not display stale configuration", () => {
   it("ignores configuration fetched for a different workspace", () => {
     const config = createConfig();
 
-    const selected = selectConfigForWorkspace(config, "workspace-a", "workspace-b");
+    const selected = selectConfigForWorkspace(
+      config,
+      "workspace-a",
+      "workspace-b",
+    );
 
     assert.equal(selected, null);
   });

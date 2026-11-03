@@ -5,7 +5,8 @@
  * Guarded against SSR execution.
  */
 
-const TOKEN_KEY = "cyber7_access_token";
+const TOKEN_KEY = "vexchat_access_token";
+const LEGACY_TOKEN_KEY = "cyber7_access_token";
 
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") {
@@ -13,7 +14,7 @@ export function getStoredToken(): string | null {
   }
 
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
   } catch {
     return null;
   }
@@ -40,7 +41,9 @@ export function removeStoredToken(): void {
 
   try {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
     document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+    document.cookie = `${LEGACY_TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
   } catch (err) {
     console.error("Failed to clear access token", err);
   }

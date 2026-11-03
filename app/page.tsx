@@ -13,7 +13,7 @@ export default function HomePage() {
 
             <div>
               <h1 className="text-xl font-bold tracking-tight text-slate-900">
-                Cyber7
+                VexChat
               </h1>
               <p className="text-sm text-slate-500">WhatsApp Business Platform</p>
             </div>

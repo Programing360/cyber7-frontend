@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import TermsOfServiceView from "@/src/component/terms-of-service/terms-of-service-view";
 
 export const metadata: Metadata = {
-  title: "Cyber7 Terms of Service",
+  title: "VexChat Terms of Service",
   description:
-    "Read Cyber7's Terms of Service to understand the terms and conditions governing the use of our WhatsApp Business communication platform.",
+    "Read VexChat's Terms of Service to understand the terms and conditions governing the use of our WhatsApp Business communication platform.",
   keywords: [
-    "Cyber7",
+    "VexChat",
     "Terms of Service",
     "Terms of Use",
     "WhatsApp Business Cloud API",
@@ -15,9 +15,9 @@ export const metadata: Metadata = {
     "SaaS Agreement",
   ],
   openGraph: {
-    title: "Cyber7 Terms of Service | WhatsApp Business Platform",
+    title: "VexChat Terms of Service | WhatsApp Business Platform",
     description:
-      "Official Terms of Service for the Cyber7 WhatsApp Business unified communications and workspace platform.",
+      "Official Terms of Service for the VexChat WhatsApp Business unified communications and workspace platform.",
     type: "website",
   },
 };

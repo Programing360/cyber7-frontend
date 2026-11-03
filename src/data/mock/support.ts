@@ -48,7 +48,7 @@ export const supportTickets: SupportTicket[] = [
       },
       {
         id: "MSG-1002",
-        sender: "Cyber7 Support",
+        sender: "VexChat Support",
         role: "support",
         message:
           "Thank you for reporting this issue. Our support team will investigate the delivery status and WhatsApp connection.",
@@ -79,7 +79,7 @@ export const supportTickets: SupportTicket[] = [
       },
       {
         id: "MSG-2002",
-        sender: "Cyber7 Support",
+        sender: "VexChat Support",
         role: "support",
         message:
           "We are reviewing the account configuration steps. Please verify that your WhatsApp Business account has the required permissions.",
@@ -133,7 +133,7 @@ export const supportTickets: SupportTicket[] = [
       },
       {
         id: "MSG-4002",
-        sender: "Cyber7 Support",
+        sender: "VexChat Support",
         role: "support",
         message:
           "We are checking the report calculations. Delivery status updates may affect the totals shown in the dashboard.",
@@ -151,7 +151,7 @@ export const supportTickets: SupportTicket[] = [
     status: "Resolved",
     createdAt: "2026-10-24T10:00:00",
     updatedAt: "2026-10-24T12:30:00",
-    description: "I need help inviting another agent to my Cyber7 workspace.",
+    description: "I need help inviting another agent to my VexChat workspace.",
     messages: [
       {
         id: "MSG-5001",
@@ -162,7 +162,7 @@ export const supportTickets: SupportTicket[] = [
       },
       {
         id: "MSG-5002",
-        sender: "Cyber7 Support",
+        sender: "VexChat Support",
         role: "support",
         message:
           "Open Team Management, select Invite Member, enter the member's email address, and assign the appropriate role.",

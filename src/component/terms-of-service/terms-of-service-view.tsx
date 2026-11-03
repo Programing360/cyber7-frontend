@@ -245,23 +245,23 @@ const CATEGORIES = [
 const FAQS = [
   {
     q: "Who owns my WhatsApp Business Account (WABA) and phone numbers?",
-    a: "You retain 100% full legal and operational ownership of your Meta Business Manager, WhatsApp Business Account (WABA), registered phone numbers, message templates, and business profile. Cyber7 acts solely as an authorized business solution software provider facilitating message management through Meta's official WhatsApp Business Cloud API.",
+    a: "You retain 100% full legal and operational ownership of your Meta Business Manager, WhatsApp Business Account (WABA), registered phone numbers, message templates, and business profile. VexChat acts solely as an authorized business solution software provider facilitating message management through Meta's official WhatsApp Business Cloud API.",
   },
   {
-    q: "Does Cyber7 charge for WhatsApp conversation fees levied by Meta?",
+    q: "Does VexChat charge for WhatsApp conversation fees levied by Meta?",
     a: "Meta charges per-conversation fees based on conversation category (Marketing, Utility, Authentication, and Service) and the recipient's country code. Depending on your configuration, conversation fees are either paid directly to Meta via your connected Meta payment method, or passed through transparently without markup under your enterprise billing agreement.",
   },
   {
     q: "What happens if Meta restricts or flags our WhatsApp Business Account?",
-    a: "Meta enforces its WhatsApp Business Terms, Commerce Policies, and messaging quality tiers independently. If your phone number receives high user block or spam report rates, Meta may reduce your messaging tier or restrict outbound campaigns. Cyber7 provides template guidelines, delivery status reporting, and platform notifications, but cannot override Meta's unilateral enforcement decisions.",
+    a: "Meta enforces its WhatsApp Business Terms, Commerce Policies, and messaging quality tiers independently. If your phone number receives high user block or spam report rates, Meta may reduce your messaging tier or restrict outbound campaigns. VexChat provides template guidelines, delivery status reporting, and platform notifications, but cannot override Meta's unilateral enforcement decisions.",
   },
   {
     q: "Can we cancel our subscription at any time?",
     a: "Yes. Workspace Owners may cancel recurring subscriptions at any time via the Workspace Settings billing portal. Cancellation takes effect at the end of the current paid billing cycle, and you will maintain full access to your workspace until that billing period concludes. We do not provide prorated refunds for partial subscription terms.",
   },
   {
-    q: "How does Cyber7 enforce WhatsApp opt-out compliance (e.g., STOP/UNSUBSCRIBE)?",
-    a: "Under Meta policy and commercial messaging regulations, senders must honor opt-out requests immediately. When a recipient asks to stop receiving communications (such as replying STOP or UNSUBSCRIBE), the Customer is responsible for ensuring no further marketing broadcasts are sent to that contact. Cyber7 displays incoming messages in real-time in the shared inbox so your team can promptly respect contact preferences.",
+    q: "How does VexChat enforce WhatsApp opt-out compliance (e.g., STOP/UNSUBSCRIBE)?",
+    a: "Under Meta policy and commercial messaging regulations, senders must honor opt-out requests immediately. When a recipient asks to stop receiving communications (such as replying STOP or UNSUBSCRIBE), the Customer is responsible for ensuring no further marketing broadcasts are sent to that contact. VexChat displays incoming messages in real-time in the shared inbox so your team can promptly respect contact preferences.",
   },
   {
     q: "How can we export our customer conversation history and data?",
@@ -344,7 +344,7 @@ export default function TermsOfServiceView() {
               </div>
               <div className="flex flex-col">
                 <span className="text-base font-extrabold tracking-tight text-slate-900">
-                  Cyber7
+                  VexChat
                 </span>
                 <span className="text-[10px] font-medium text-slate-500">
                   WhatsApp Business
@@ -394,7 +394,7 @@ export default function TermsOfServiceView() {
             </Link>
 
             <Link
-              href="mailto:legal@cyber7.io"
+              href="mailto:legal@vexchat.io"
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
             >
               <Mail size={13} />
@@ -419,11 +419,11 @@ export default function TermsOfServiceView() {
           </div>
 
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            Cyber7 Terms of Service
+            VexChat Terms of Service
           </h1>
 
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            These Terms of Service govern your access to and use of the Cyber7
+            These Terms of Service govern your access to and use of the VexChat
             WhatsApp Business communication platform, APIs, team workspaces,
             and related software services.
           </p>
@@ -438,8 +438,8 @@ export default function TermsOfServiceView() {
                 <span className="font-bold text-slate-900">
                   Important Notice for WhatsApp Business Senders:
                 </span>{" "}
-                Cyber7 integrates directly with Meta Platforms, Inc.&apos;s
-                official WhatsApp Business Cloud API. Your use of Cyber7 is
+                VexChat integrates directly with Meta Platforms, Inc.&apos;s
+                official WhatsApp Business Cloud API. Your use of VexChat is
                 conditioned upon your ongoing compliance with Meta&apos;s
                 WhatsApp Business Terms of Service, Commerce Policies, and
                 opt-in consent requirements. Unsolicited mass messaging,
@@ -485,7 +485,7 @@ export default function TermsOfServiceView() {
               Customer Data Ownership
             </h3>
             <p className="mt-1.5 text-xs leading-5 text-slate-600">
-              You own your contacts, conversations, and business data. Cyber7
+              You own your contacts, conversations, and business data. VexChat
               never sells or monetizes your data.
             </p>
           </div>
@@ -624,7 +624,7 @@ export default function TermsOfServiceView() {
                 <div className="mt-4 space-y-2 text-xs">
                   <div className="flex items-center gap-2 text-slate-200">
                     <Mail size={13} className="text-lime-400" />
-                    <span className="font-mono">legal@cyber7.io</span>
+                    <span className="font-mono">legal@vexchat.io</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <Clock size={13} className="text-lime-400" />
@@ -632,7 +632,7 @@ export default function TermsOfServiceView() {
                   </div>
                 </div>
                 <a
-                  href="mailto:legal@cyber7.io?subject=Terms%20of%20Service%20Inquiry%20-%20Cyber7"
+                  href="mailto:legal@vexchat.io?subject=Terms%20of%20Service%20Inquiry%20-%20VexChat"
                   className="mt-4 block w-full rounded-xl bg-lime-400 py-2 text-center text-xs font-bold text-slate-950 transition hover:bg-lime-300"
                 >
                   Email Legal Team
@@ -657,7 +657,7 @@ export default function TermsOfServiceView() {
                     1. Introduction
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Entity: Cyber7 Technologies Inc. (&quot;Cyber7&quot;,
+                    Entity: VexChat Technologies Inc. (&quot;VexChat&quot;,
                     &quot;we&quot;, &quot;us&quot;, &quot;our&quot;)
                   </p>
                 </div>
@@ -665,7 +665,7 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  Welcome to Cyber7. Cyber7 provides an enterprise-grade
+                  Welcome to VexChat. VexChat provides an enterprise-grade
                   software-as-a-service (&quot;SaaS&quot;) platform designed to
                   unify WhatsApp Business customer communications, multi-agent
                   team collaboration, contact management, automated webhook
@@ -674,7 +674,7 @@ export default function TermsOfServiceView() {
                 </p>
                 <p>
                   These Terms of Service (&quot;Terms&quot;, &quot;Agreement&quot;)
-                  constitute a legally binding contract between Cyber7
+                  constitute a legally binding contract between VexChat
                   Technologies Inc. and the legal entity or individual
                   (&quot;Customer&quot;, &quot;User&quot;, &quot;You&quot;)
                   accessing or utilizing our services. If you are entering into
@@ -684,7 +684,7 @@ export default function TermsOfServiceView() {
                   these Terms.
                 </p>
                 <p>
-                  By registering for an account, accessing the Cyber7 web
+                  By registering for an account, accessing the VexChat web
                   application, integrating your Meta WhatsApp Business Account,
                   or utilizing any of our APIs, you acknowledge that you have
                   read, understood, and agreed to be bound by all terms,
@@ -719,11 +719,11 @@ export default function TermsOfServiceView() {
                   similar confirmation buttons on our website or onboarding
                   portal; (b) executing a written or electronic Order Form or
                   Service Agreement referencing these Terms; or (c) initiating
-                  use of any Cyber7 services, software, or APIs.
+                  use of any VexChat services, software, or APIs.
                 </p>
                 <p>
                   If you do not agree with any provision of these Terms, you
-                  must immediately refrain from using the Cyber7 platform,
+                  must immediately refrain from using the VexChat platform,
                   disconnect any connected Meta WhatsApp integrations, and close
                   your account. Continued use of the platform following the
                   effective date of any revised Terms constitutes full and
@@ -733,7 +733,7 @@ export default function TermsOfServiceView() {
                   <span className="font-semibold text-slate-900">
                     Supplementary Terms:
                   </span>{" "}
-                  Your use of Cyber7 is also governed by our{" "}
+                  Your use of VexChat is also governed by our{" "}
                   <Link
                     href="/privacy-policy"
                     className="font-semibold text-lime-700 underline hover:text-lime-800"
@@ -761,7 +761,7 @@ export default function TermsOfServiceView() {
                     3. Definitions
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Standardized terminology used across the Cyber7 platform
+                    Standardized terminology used across the VexChat platform
                   </p>
                 </div>
               </div>
@@ -772,7 +772,7 @@ export default function TermsOfServiceView() {
                     &quot;Authorized User&quot;:
                   </span>{" "}
                   An individual employee, contractor, or agent who is authorized
-                  by the Customer to access and utilize the Cyber7 platform under
+                  by the Customer to access and utilize the VexChat platform under
                   the Customer&apos;s account and workspace credentials.
                 </div>
 
@@ -827,7 +827,7 @@ export default function TermsOfServiceView() {
                   <span className="font-bold text-slate-900">
                     &quot;Workspace&quot;:
                   </span>{" "}
-                  A logically isolated tenant environment within Cyber7 with its
+                  A logically isolated tenant environment within VexChat with its
                   own dedicated access tokens, team permissions, contact
                   databases, conversation threads, and audit logs.
                 </div>
@@ -855,7 +855,7 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  Cyber7 provides a multi-tenant business software platform that
+                  VexChat provides a multi-tenant business software platform that
                   enables businesses to orchestrate WhatsApp customer
                   conversations at scale. Core platform capabilities include:
                 </p>
@@ -908,7 +908,7 @@ export default function TermsOfServiceView() {
                   </li>
                 </ul>
                 <p className="text-xs text-slate-500 italic">
-                  Note: Cyber7 does not provide direct telecommunication
+                  Note: VexChat does not provide direct telecommunication
                   transmission lines or mobile carrier infrastructure. Message
                   transmission is executed directly by Meta Platforms, Inc.
                 </p>
@@ -936,7 +936,7 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  To register for and maintain an active Cyber7 account, you must:
+                  To register for and maintain an active VexChat account, you must:
                 </p>
                 <ul className="list-disc pl-5 space-y-1.5 text-xs text-slate-700">
                   <li>
@@ -963,10 +963,10 @@ export default function TermsOfServiceView() {
                   You are solely and fully responsible for all acts, omissions,
                   and communications transmitted through your account credentials.
                   If you discover or suspect any unauthorized access, token
-                  compromise, or breach of security, you must notify Cyber7
+                  compromise, or breach of security, you must notify VexChat
                   immediately at{" "}
                   <span className="font-mono text-lime-700">
-                    security@cyber7.io
+                    security@vexchat.io
                   </span>
                   .
                 </p>
@@ -994,7 +994,7 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  As a Cyber7 Customer, you represent, warrant, and covenant that:
+                  As a VexChat Customer, you represent, warrant, and covenant that:
                 </p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs">
@@ -1066,7 +1066,7 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  Cyber7 organizes customer operations into Workspaces. Each
+                  VexChat organizes customer operations into Workspaces. Each
                   Workspace acts as a logically isolated tenant with its own
                   credentials, customer databases, and configuration settings:
                 </p>
@@ -1094,7 +1094,7 @@ export default function TermsOfServiceView() {
                     </strong>{" "}
                     Ownership transfers require explicit authentication from the
                     current Workspace Owner or documented corporate legal
-                    succession verified by Cyber7 support.
+                    succession verified by VexChat support.
                   </li>
                 </ul>
               </div>
@@ -1121,7 +1121,7 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  Cyber7 integrates natively with Meta&apos;s WhatsApp Business
+                  VexChat integrates natively with Meta&apos;s WhatsApp Business
                   Cloud API. To connect your WhatsApp Business Account:
                 </p>
                 <ul className="list-disc pl-5 space-y-2 text-xs text-slate-700">
@@ -1131,18 +1131,18 @@ export default function TermsOfServiceView() {
                     ID registered with Meta.
                   </li>
                   <li>
-                    You authorize Cyber7 to transmit and receive messages, media,
+                    You authorize VexChat to transmit and receive messages, media,
                     and status webhooks on your behalf via Meta&apos;s Cloud API.
                   </li>
                   <li>
-                    All Meta API tokens and secrets entered into Cyber7 are
+                    All Meta API tokens and secrets entered into VexChat are
                     encrypted using industry-standard 256-bit AES encryption at
                     rest and are never exposed in client-side code.
                   </li>
                 </ul>
                 <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900">
                   <span className="font-bold">Technical Boundary Notice:</span>{" "}
-                  Cyber7 cannot guarantee message delivery speeds, network latency,
+                  VexChat cannot guarantee message delivery speeds, network latency,
                   or delivery rates. Message routing, telecommunication handshake,
                   and carrier delivery are handled entirely within Meta&apos;s
                   global infrastructure. Furthermore, Meta strictly limits
@@ -1174,10 +1174,10 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  <strong>Independent Software Vendor Status:</strong> Cyber7
+                  <strong>Independent Software Vendor Status:</strong> VexChat
                   Technologies Inc. is an independent software provider.
                   &quot;WhatsApp&quot; and &quot;Meta&quot; are registered
-                  trademarks of Meta Platforms, Inc. Cyber7 is not owned by,
+                  trademarks of Meta Platforms, Inc. VexChat is not owned by,
                   partnered with, or an agent of Meta Platforms, Inc., except as
                   an authorized software integration utilizing Meta&apos;s
                   public Cloud APIs.
@@ -1217,7 +1217,7 @@ export default function TermsOfServiceView() {
                   </a>
                 </div>
                 <p>
-                  Cyber7 shall have no liability whatsoever for any actions taken
+                  VexChat shall have no liability whatsoever for any actions taken
                   by Meta, including rejection of message templates, downgrading
                   of phone number quality ratings, suspension or banning of WABAs,
                   or API endpoint outages.
@@ -1320,7 +1320,7 @@ export default function TermsOfServiceView() {
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
                   <strong>Subscription Plans &amp; Billing Cycles:</strong>{" "}
-                  Cyber7 offers subscription plans billed on a recurring monthly
+                  VexChat offers subscription plans billed on a recurring monthly
                   or annual basis. Subscription fees cover access to the SaaS
                   platform, seat licenses, inbox tools, and storage according to
                   your selected tier.
@@ -1337,13 +1337,13 @@ export default function TermsOfServiceView() {
                   per-conversation fees for WhatsApp Business Cloud API usage.
                   Depending on your enterprise configuration, these charges are
                   either settled directly with Meta via your Meta Business
-                  Manager payment method, or passed through via Cyber7 invoicing
+                  Manager payment method, or passed through via VexChat invoicing
                   at Meta&apos;s published rates.
                 </p>
                 <p>
                   <strong>Non-Refundable Fees &amp; Taxes:</strong> Except as
                   expressly required by mandatory local consumer laws, all fees
-                  paid to Cyber7 are strictly non-refundable. You are solely
+                  paid to VexChat are strictly non-refundable. You are solely
                   responsible for all applicable value-added taxes (VAT), sales
                   taxes, goods and services taxes (GST), and duties assessed by
                   governmental authorities.
@@ -1372,17 +1372,17 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  Cyber7 may offer temporary free trials or evaluation tiers to
+                  VexChat may offer temporary free trials or evaluation tiers to
                   prospective customers. Free trials are provided solely for the
                   purpose of evaluating platform features and API connectivity.
                 </p>
                 <ul className="list-disc pl-5 space-y-1.5 text-xs text-slate-700">
                   <li>
                     Free trials are limited to one per business organization
-                    unless authorized in writing by Cyber7.
+                    unless authorized in writing by VexChat.
                   </li>
                   <li>
-                    Cyber7 reserves the right to modify trial duration, impose
+                    VexChat reserves the right to modify trial duration, impose
                     monthly active contact (MAC) caps, or restrict broadcast
                     volumes during trial periods.
                   </li>
@@ -1423,14 +1423,14 @@ export default function TermsOfServiceView() {
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
                   <strong>Customer Ownership:</strong> As between Customer and
-                  Cyber7, Customer retains all right, title, and interest
+                  VexChat, Customer retains all right, title, and interest
                   (including all intellectual property and proprietary rights) in
-                  and to all Customer Data. Cyber7 claims no ownership interest
+                  and to all Customer Data. VexChat claims no ownership interest
                   in your contacts, conversations, templates, or media assets.
                 </p>
                 <p>
                   <strong>Limited Processing License:</strong> Customer grants
-                  Cyber7 a worldwide, limited, non-exclusive, royalty-free license
+                  VexChat a worldwide, limited, non-exclusive, royalty-free license
                   to host, copy, transmit, and display Customer Data strictly to
                   the extent necessary to operate, maintain, support, and provide
                   the Services under this Agreement.
@@ -1439,8 +1439,8 @@ export default function TermsOfServiceView() {
                   <strong>Data Protection &amp; Processor Role:</strong> To the
                   extent Customer Data contains personal data subject to GDPR,
                   UK-GDPR, or CCPA, the parties agree that Customer is the Data
-                  Controller and Cyber7 acts strictly as a Data Processor.
-                  Cyber7 processes personal data strictly pursuant to the
+                  Controller and VexChat acts strictly as a Data Processor.
+                  VexChat processes personal data strictly pursuant to the
                   Customer&apos;s documented instructions, as further set forth
                   in our{" "}
                   <Link
@@ -1452,7 +1452,7 @@ export default function TermsOfServiceView() {
                   .
                 </p>
                 <p>
-                  Cyber7 never sells, leases, or monetizes Customer Data or
+                  VexChat never sells, leases, or monetizes Customer Data or
                   customer contact lists to third-party data brokers or
                   advertisers.
                 </p>
@@ -1480,9 +1480,9 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  <strong>Cyber7 Intellectual Property:</strong> Cyber7
+                  <strong>VexChat Intellectual Property:</strong> VexChat
                   Technologies Inc. and its licensors retain all right, title, and
-                  interest in and to the Cyber7 platform, software code, user
+                  interest in and to the VexChat platform, software code, user
                   interfaces, APIs, algorithms, documentation, trademarks, logos,
                   and all enhancements, modifications, and derivative works
                   thereof.
@@ -1490,15 +1490,15 @@ export default function TermsOfServiceView() {
                 <p>
                   <strong>Limited License Grant:</strong> Subject to your ongoing
                   compliance with these Terms and timely payment of subscription
-                  fees, Cyber7 grants you a limited, revocable, non-exclusive,
+                  fees, VexChat grants you a limited, revocable, non-exclusive,
                   non-transferable, non-sublicensable license to access and use
-                  the Cyber7 platform during your subscription term solely for
+                  the VexChat platform during your subscription term solely for
                   your internal business operations.
                 </p>
                 <p>
                   <strong>Feedback:</strong> If you provide suggestions, feature
                   requests, bug reports, or feedback regarding the Platform, you
-                  grant Cyber7 a perpetual, irrevocable, worldwide, royalty-free
+                  grant VexChat a perpetual, irrevocable, worldwide, royalty-free
                   license to use and incorporate such feedback into the platform
                   without any obligation of attribution or compensation.
                 </p>
@@ -1543,7 +1543,7 @@ export default function TermsOfServiceView() {
                       Reverse Engineering
                     </strong>
                     Decompile, reverse engineer, disassemble, or attempt to derive
-                    the source code of Cyber7 or its proprietary APIs.
+                    the source code of VexChat or its proprietary APIs.
                   </div>
 
                   <div className="rounded-xl border border-rose-100 bg-rose-50/50 p-3">
@@ -1603,13 +1603,13 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  <strong>Suspension for Cause:</strong> Cyber7 reserves the right
+                  <strong>Suspension for Cause:</strong> VexChat reserves the right
                   to immediately suspend or restrict access to your workspace or
                   any Authorized User without prior notice if: (a) you fail to pay
                   applicable subscription fees when due; (b) you violate Section 10
                   (Messaging Policies) or Section 15 (Prohibited Activities); (c)
                   your WhatsApp quality rating drops to critical or Meta
-                  restricts your WABA; or (d) Cyber7 reasonably believes your
+                  restricts your WABA; or (d) VexChat reasonably believes your
                   account poses an immediate security, operational, or legal risk
                   to the platform or third parties.
                 </p>
@@ -1625,7 +1625,7 @@ export default function TermsOfServiceView() {
                   security violations or legal mandate, Customer may export available
                   contact lists via standard CSV download prior to closure, or request
                   data export assistance from customer support within thirty (30)
-                  days of termination. Following this period, Cyber7 reserves the right
+                  days of termination. Following this period, VexChat reserves the right
                   to delete or anonymize Customer Data in accordance with operational
                   data retention practices.
                 </p>
@@ -1653,9 +1653,9 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  <strong>Platform Availability:</strong> Cyber7 employs commercially
+                  <strong>Platform Availability:</strong> VexChat employs commercially
                   reasonable efforts to maintain the continuous availability,
-                  reliability, and security of the SaaS platform. Cyber7 does not
+                  reliability, and security of the SaaS platform. VexChat does not
                   provide a guaranteed uptime percentage or formal Service Level
                   Agreement (SLA) unless specifically agreed upon in an executed
                   enterprise order form. Service availability remains subject to
@@ -1670,7 +1670,7 @@ export default function TermsOfServiceView() {
                   during off-peak hours.
                 </p>
                 <p>
-                  <strong>Platform Updates:</strong> Cyber7 continuously improves
+                  <strong>Platform Updates:</strong> VexChat continuously improves
                   and enhances its services. We reserve the right to modify,
                   update, or deprecate features, user interfaces, and API
                   endpoints from time to time. For material deprecations of core
@@ -1701,20 +1701,20 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 font-mono text-[11px] uppercase tracking-wide text-slate-800 leading-relaxed">
-                  TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE CYBER7
+                  TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE VEXCHAT
                   PLATFORM, APIS, WORKSPACES, DOCUMENTATION, AND ALL RELATED
                   SERVICES ARE PROVIDED STRICTLY &quot;AS IS&quot; AND &quot;AS
                   AVAILABLE&quot;, WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS,
                   IMPLIED, STATUTORY, OR OTHERWISE.
                 </div>
                 <p>
-                  CYBER7 EXPRESSLY DISCLAIMS ALL IMPLIED WARRANTIES, INCLUDING
+                  VEXCHAT EXPRESSLY DISCLAIMS ALL IMPLIED WARRANTIES, INCLUDING
                   WITHOUT LIMITATION ANY WARRANTIES OF MERCHANTABILITY, FITNESS
                   FOR A PARTICULAR PURPOSE, TITLE, QUIET ENJOYMENT, AND
                   NON-INFRINGEMENT.
                 </p>
                 <p>
-                  WITHOUT LIMITING THE GENERALITY OF THE FOREGOING, CYBER7 DOES
+                  WITHOUT LIMITING THE GENERALITY OF THE FOREGOING, VEXCHAT DOES
                   NOT WARRANT THAT: (A) THE SERVICES WILL MEET YOUR SPECIFIC
                   COMMERCIAL REQUIREMENTS; (B) OPERATION WILL BE UNINTERRUPTED,
                   TIMELY, SECURE, OR ERROR-FREE; (C) ANY DEFECTS IN THE SOFTWARE
@@ -1760,11 +1760,11 @@ export default function TermsOfServiceView() {
                 </p>
                 <p>
                   <strong>Aggregate Liability Cap:</strong> TO THE MAXIMUM EXTENT
-                  PERMITTED BY LAW, THE TOTAL AGGREGATE LIABILITY OF CYBER7
+                  PERMITTED BY LAW, THE TOTAL AGGREGATE LIABILITY OF VEXCHAT
                   ARISING OUT OF OR RELATING TO THIS AGREEMENT, WHETHER IN
                   CONTRACT, TORT (INCLUDING NEGLIGENCE), BREACH OF STATUTORY
                   DUTY, OR OTHERWISE, SHALL IN NO EVENT EXCEED THE TOTAL
-                  SUBSCRIPTION FEES ACTUALLY PAID BY CUSTOMER TO CYBER7 UNDER
+                  SUBSCRIPTION FEES ACTUALLY PAID BY CUSTOMER TO VEXCHAT UNDER
                   THIS AGREEMENT IN THE TWELVE (12) MONTH PERIOD PRECEDING THE
                   FIRST EVENT GIVING RISE TO LIABILITY (OR ONE HUNDRED U.S.
                   DOLLARS ($100) IF CUSTOMER IS ON A FREE TRIAL).
@@ -1793,7 +1793,7 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  Customer agrees to defend, indemnify, and hold harmless Cyber7
+                  Customer agrees to defend, indemnify, and hold harmless VexChat
                   Technologies Inc., its parent companies, subsidiaries,
                   officers, directors, employees, agents, and licensors from and
                   against any and all third-party claims, lawsuits, demands,
@@ -1847,21 +1847,21 @@ export default function TermsOfServiceView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  Cyber7 reserves the right to amend, update, or replace these
+                  VexChat reserves the right to amend, update, or replace these
                   Terms at any time to reflect changes in legal requirements,
                   industry best practices, platform feature advancements, or Meta
                   developer policies.
                 </p>
                 <p>
-                  When material amendments are made, Cyber7 will provide notice by
+                  When material amendments are made, VexChat will provide notice by
                   updating the &quot;Last Updated&quot; date at the top of this
                   document and, for substantive changes affecting your rights or
                   obligations, providing at least thirty (30) days&apos; advance
-                  notice via email or a prominent notification within the Cyber7
+                  notice via email or a prominent notification within the VexChat
                   dashboard.
                 </p>
                 <p>
-                  Your continued use of Cyber7 following the effective date of the
+                  Your continued use of VexChat following the effective date of the
                   updated Terms constitutes your agreement to be bound by the
                   amended agreement. If you do not agree with the updated Terms,
                   your sole and exclusive remedy is to terminate your account
@@ -1895,7 +1895,7 @@ export default function TermsOfServiceView() {
                   or claim arising out of or in connection with it or its subject
                   matter or formation shall be governed by and construed in
                   accordance with the laws of the applicable commercial
-                  jurisdiction agreed in your Order Form (or as designated by Cyber7 upon legal review), without giving effect
+                  jurisdiction agreed in your Order Form (or as designated by VexChat upon legal review), without giving effect
                   to any choice-of-law or conflict-of-law rules.
                 </p>
                 <p>
@@ -1915,7 +1915,7 @@ export default function TermsOfServiceView() {
                   by an established commercial arbitration provider.
                 </p>
                 <p>
-                  <strong>Class Action Waiver:</strong> YOU AND CYBER7 AGREE THAT
+                  <strong>Class Action Waiver:</strong> YOU AND VEXCHAT AGREE THAT
                   EACH PARTY MAY BRING CLAIMS AGAINST THE OTHER ONLY IN AN
                   INDIVIDUAL CAPACITY AND NOT AS A PLAINTIFF OR CLASS MEMBER IN
                   ANY PURPORTED CLASS, COLLECTIVE, OR REPRESENTATIVE PROCEEDING.
@@ -1953,10 +1953,10 @@ export default function TermsOfServiceView() {
                     <p className="font-bold text-slate-900 mb-1">
                       Legal Notices &amp; Contracts
                     </p>
-                    <p className="text-slate-600">Cyber7 Technologies Inc.</p>
+                    <p className="text-slate-600">VexChat Technologies Inc.</p>
                     <p className="text-slate-600">Legal &amp; Regulatory Affairs</p>
                     <p className="mt-2 font-mono text-lime-700">
-                      legal@cyber7.io
+                      legal@vexchat.io
                     </p>
                   </div>
 
@@ -1964,10 +1964,10 @@ export default function TermsOfServiceView() {
                     <p className="font-bold text-slate-900 mb-1">
                       Customer Support &amp; Billing
                     </p>
-                    <p className="text-slate-600">Cyber7 Customer Success Team</p>
+                    <p className="text-slate-600">VexChat Customer Success Team</p>
                     <p className="text-slate-600">Available Monday - Friday</p>
                     <p className="mt-2 font-mono text-lime-700">
-                      support@cyber7.io
+                      support@vexchat.io
                     </p>
                   </div>
                 </div>
@@ -2035,10 +2035,10 @@ export default function TermsOfServiceView() {
                 <MessageCircle size={18} className="stroke-[2.5]" />
               </div>
               <span className="text-sm font-bold tracking-tight text-slate-900">
-                Cyber7 Platform
+                VexChat Platform
               </span>
               <span className="text-xs text-slate-400">
-                Â© Cyber7 Technologies Inc. All rights reserved.
+                Â© VexChat Technologies Inc. All rights reserved.
               </span>
             </div>
 

@@ -223,7 +223,7 @@ showToast(
 
 function handleDownloadInvoice(invoice: Invoice) {
 const content = [
-"Cyber7 - Demo Invoice",
+"VexChat - Demo Invoice",
 "----------------------",
 `Invoice ID: ${invoice.id}`,
 `Date: ${invoice.date}`,
@@ -339,7 +339,7 @@ Subscription & Billing </span> </div>
                 </div>
 
                 <h2 className="mt-5 text-3xl font-bold">
-                  Cyber7 {activePlan.name}
+                  VexChat {activePlan.name}
                 </h2>
 
                 <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">
@@ -780,7 +780,7 @@ Subscription & Billing </span> </div>
         </h3>
 
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          You are currently on the Cyber7 {activePlan.name} plan. This
+          You are currently on the VexChat {activePlan.name} plan. This
           demo will not cancel your real subscription or change your
           billing status.
         </p>

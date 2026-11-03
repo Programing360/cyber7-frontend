@@ -5,11 +5,11 @@ import { WorkspaceProvider } from "@/src/context/workspace-context";
 
 export const metadata: Metadata = {
   title: {
-    default: "Cyber7 | WhatsApp Business Platform",
-    template: "%s | Cyber7",
+    default: "VexChat | WhatsApp Business Platform",
+    template: "%s | VexChat",
   },
   description:
-    "Manage WhatsApp conversations, contacts, campaigns, teams, and business analytics from one platform.",
+    "Send messages, manage customers with CRM, run marketing campaigns, and use our developer API, all in one place. VexChat uses Meta's official WhatsApp Cloud API to help businesses manage WhatsApp communication.",
 };
 
 export default function RootLayout({

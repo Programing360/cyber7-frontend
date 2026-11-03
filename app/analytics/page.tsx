@@ -122,7 +122,7 @@ export default function AnalyticsPage() {
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = `cyber7-analytics-${period}.csv`;
+    link.download = `vexchat-analytics-${period}.csv`;
 
     document.body.appendChild(link);
     link.click();

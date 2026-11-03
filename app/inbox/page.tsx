@@ -1,12 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, Loader2, MessageCircle, RefreshCw } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  MessageCircle,
+  Plus,
+  RefreshCw,
+} from "lucide-react";
 
 import DashboardLayout from "@/src/component/dashboard/dashboard-layout";
 import ConversationList from "@/src/component/inbox/conversation-list";
 import ChatWindow from "@/src/component/inbox/chat-window";
 import ContactPanel from "@/src/component/inbox/contact-panel";
+import NewConversationModal from "@/src/component/inbox/new-conversation-modal";
 
 import { useWorkspace } from "@/src/context/workspace-context";
 import { conversationService } from "@/src/services/conversation-service";
@@ -23,17 +30,23 @@ export default function InboxPage() {
 
   // ── Conversations ─────────────────────────────────────────────────────────
 
-  const [conversations, setConversations] = useState<WhatsAppConversationItem[]>([]);
+  const [conversations, setConversations] = useState<
+    WhatsAppConversationItem[]
+  >([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
-  const [conversationsError, setConversationsError] = useState<string | null>(null);
+  const [conversationsError, setConversationsError] = useState<string | null>(
+    null,
+  );
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
 
   // ── Messages ──────────────────────────────────────────────────────────────
 
   const [messages, setMessages] = useState<WhatsAppMessageItem[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [messagesError, setMessagesError] = useState<string | null>(null);
 
   // ── Send message state ────────────────────────────────────────────────────
 
@@ -48,38 +61,54 @@ export default function InboxPage() {
 
   // ── Derived state ─────────────────────────────────────────────────────────
 
-  const selectedConversation = conversations.find((c) => c._id === selectedId) ?? null;
+  const selectedConversation =
+    conversations.find(
+      (c) => c._id === selectedId || (c as { id?: string }).id === selectedId,
+    ) ?? null;
 
   // ── Fetch conversations ───────────────────────────────────────────────────
 
-  const fetchConversations = useCallback(async () => {
-    if (!activeWorkspace?.id) return;
+  const fetchConversations = useCallback(
+    async (selectIdOnComplete?: string) => {
+      if (!activeWorkspace?.id) return;
 
-    setIsLoadingConversations(true);
-    setConversationsError(null);
+      setIsLoadingConversations(true);
+      setConversationsError(null);
 
-    try {
-      const result = await conversationService.listConversations({
-        workspaceId: activeWorkspace.id,
-        limit: 50,
-      });
+      try {
+        const result = await conversationService.listConversations({
+          workspaceId: activeWorkspace.id,
+          limit: 50,
+        });
 
-      setConversations(result.conversations);
+        setConversations(result.conversations);
 
-      // Auto-select the first conversation if none selected
-      if (!selectedId && result.conversations.length > 0) {
-        setSelectedId(result.conversations[0]._id);
+        if (selectIdOnComplete) {
+          setSelectedId(selectIdOnComplete);
+        } else if (result.conversations.length > 0) {
+          setSelectedId((current) => {
+            const exists = result.conversations.some(
+              (c) => c._id === current || (c as { id?: string }).id === current,
+            );
+            return exists
+              ? current
+              : result.conversations[0]._id ||
+              (result.conversations[0] as { id?: string }).id ||
+              null;
+          });
+        }
+      } catch (err) {
+        const message =
+          err instanceof ApiClientError
+            ? err.message
+            : "Failed to load conversations. Please try again.";
+        setConversationsError(message);
+      } finally {
+        setIsLoadingConversations(false);
       }
-    } catch (err) {
-      const message =
-        err instanceof ApiClientError
-          ? err.message
-          : "Failed to load conversations. Please try again.";
-      setConversationsError(message);
-    } finally {
-      setIsLoadingConversations(false);
-    }
-  }, [activeWorkspace?.id, selectedId]);
+    },
+    [activeWorkspace?.id],
+  );
 
   // Fetch on mount / workspace switch — clears all state including send state
   useEffect(() => {
@@ -87,38 +116,77 @@ export default function InboxPage() {
     setSelectedId(null);
     setMessages([]);
     setConversationsError(null);
+    setMessagesError(null);
     setIsSending(false);
     setSendError(null);
+    setIsNewModalOpen(false);
     fetchConversations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, fetchConversations]);
 
   // ── Fetch messages when selected conversation changes ─────────────────────
 
-  const fetchMessages = useCallback(async () => {
-    if (!activeWorkspace?.id || !selectedId) {
-      setMessages([]);
-      return;
-    }
+  const fetchMessages = useCallback(
+    async (silent = false) => {
+      if (!activeWorkspace?.id || !selectedId) {
+        setMessages([]);
+        return;
+      }
 
-    setIsLoadingMessages(true);
-    try {
-      const result = await conversationService.listMessages({
-        workspaceId: activeWorkspace.id,
-        conversationId: selectedId,
-        limit: 100,
-      });
-      setMessages(result.messages);
-    } catch {
-      setMessages([]);
-    } finally {
-      setIsLoadingMessages(false);
-    }
-  }, [activeWorkspace?.id, selectedId]);
+      if (!silent) setIsLoadingMessages(true);
+      setMessagesError(null);
+
+      try {
+        const result = await conversationService.listMessages({
+          workspaceId: activeWorkspace.id,
+          conversationId: selectedId,
+          limit: 100,
+        });
+        setMessages(result.messages);
+      } catch (err: unknown) {
+        if (!silent) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : "Failed to load messages for this conversation.";
+          setMessagesError(message);
+          setMessages([]);
+        }
+      } finally {
+        if (!silent) setIsLoadingMessages(false);
+      }
+    },
+    [activeWorkspace?.id, selectedId],
+  );
 
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
+
+  // ── Auto-refresh polling every 8s for live messaging ──────────────────────
+
+  useEffect(() => {
+    if (!activeWorkspace?.id || !selectedId) return;
+
+    const interval = setInterval(() => {
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "visible"
+      ) {
+        fetchMessages(true);
+      }
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [activeWorkspace?.id, selectedId, fetchMessages]);
+
+  // ── Refresh all (conversations + active messages) ──────────────────────────
+
+  const handleRefreshAll = useCallback(async () => {
+    await Promise.all([
+      fetchConversations(),
+      selectedId ? fetchMessages() : Promise.resolve(),
+    ]);
+  }, [fetchConversations, fetchMessages, selectedId]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -126,6 +194,20 @@ export default function InboxPage() {
     setSelectedId(id);
     setMobileChatOpen(true);
     setSendError(null);
+    setMessagesError(null);
+  }
+
+  function handleConversationCreated(conv: WhatsAppConversationItem) {
+    const convId = conv._id || (conv as { id?: string }).id || "";
+    setConversations((prev) => {
+      const exists = prev.some(
+        (c) => c._id === convId || (c as { id?: string }).id === convId,
+      );
+      if (exists) return prev;
+      return [conv, ...prev];
+    });
+    setSelectedId(convId);
+    setMobileChatOpen(true);
   }
 
   async function handleStatusChange(
@@ -141,7 +223,11 @@ export default function InboxPage() {
     );
 
     setConversations((prev) =>
-      prev.map((c) => (c._id === conversationId ? { ...c, status: updated.status } : c)),
+      prev.map((c) =>
+        c._id === conversationId || (c as { id?: string }).id === conversationId
+          ? { ...c, status: updated.status }
+          : c,
+      ),
     );
   }
 
@@ -150,7 +236,6 @@ export default function InboxPage() {
   async function handleSendMessage(text: string) {
     if (!activeWorkspace?.id || !selectedId || isSending) return;
 
-    // Snapshot the workspace ID at the time of send
     const workspaceIdAtSend = activeWorkspace.id;
     const conversationIdAtSend = selectedId;
 
@@ -164,19 +249,18 @@ export default function InboxPage() {
         text,
       });
 
-      // Guard: if workspace or conversation changed during the request, discard
-      if (
-        activeWorkspaceRef.current !== workspaceIdAtSend
-      ) {
-        return; // silently discard — user switched workspace
+      if (activeWorkspaceRef.current !== workspaceIdAtSend) {
+        return;
       }
 
-      // Append the persisted message, deduplicating by _id
       setMessages((prev) => {
-        const exists = prev.some((m) => m._id === saved._id);
+        const exists = prev.some(
+          (m) =>
+            m._id === saved._id ||
+            (m.waMessageId && m.waMessageId === saved.waMessageId),
+        );
         if (exists) return prev;
 
-        // Cast the response into our standard WhatsAppMessageItem shape
         const newMsg: WhatsAppMessageItem = {
           _id: saved._id,
           workspaceId: saved.workspaceId,
@@ -197,10 +281,10 @@ export default function InboxPage() {
         return [...prev, newMsg];
       });
 
-      // Update conversation preview in sidebar
       setConversations((prev) =>
         prev.map((c) => {
-          if (c._id !== conversationIdAtSend) return c;
+          const id = c._id || (c as { id?: string }).id;
+          if (id !== conversationIdAtSend) return c;
           return {
             ...c,
             lastMessageAt: saved.timestamp,
@@ -216,13 +300,12 @@ export default function InboxPage() {
         }),
       );
     } catch (err) {
-      // Text is NOT cleared — user can retry
       const errorMessage =
         err instanceof Error
           ? err.message
           : "Failed to send message. Please try again.";
       setSendError(errorMessage);
-      throw err; // re-throw so ChatWindow knows not to clear the input
+      throw err;
     } finally {
       setIsSending(false);
     }
@@ -257,7 +340,11 @@ export default function InboxPage() {
       }
 
       setMessages((prev) => {
-        const exists = prev.some((m) => m._id === saved._id);
+        const exists = prev.some(
+          (m) =>
+            m._id === saved._id ||
+            (m.waMessageId && m.waMessageId === saved.waMessageId),
+        );
         if (exists) return prev;
 
         const newMsg: WhatsAppMessageItem = {
@@ -282,7 +369,8 @@ export default function InboxPage() {
 
       setConversations((prev) =>
         prev.map((c) => {
-          if (c._id !== conversationIdAtSend) return c;
+          const id = c._id || (c as { id?: string }).id;
+          if (id !== conversationIdAtSend) return c;
           return {
             ...c,
             status: "OPEN",
@@ -348,7 +436,7 @@ export default function InboxPage() {
   return (
     <DashboardLayout>
       <div className="mx-auto max-w-[1800px]">
-        <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               WhatsApp Inbox
@@ -359,19 +447,34 @@ export default function InboxPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={fetchConversations}
-            disabled={isLoadingConversations}
-            title="Refresh conversations"
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
-          >
-            <RefreshCw
-              size={14}
-              className={isLoadingConversations ? "animate-spin" : ""}
-            />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setIsNewModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-green-600  px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700"
+            >
+              <Plus size={15} />
+              <span>New Conversation</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRefreshAll}
+              disabled={isLoadingConversations || isLoadingMessages}
+              title="Refresh conversations and messages"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 shadow-sm"
+            >
+              <RefreshCw
+                size={14}
+                className={
+                  isLoadingConversations || isLoadingMessages
+                    ? "animate-spin"
+                    : ""
+                }
+              />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
 
         {/* Error banner */}
@@ -386,7 +489,7 @@ export default function InboxPage() {
             </div>
             <button
               type="button"
-              onClick={fetchConversations}
+              onClick={() => fetchConversations()}
               className="shrink-0 text-xs font-semibold text-red-700 hover:text-red-900"
             >
               Retry
@@ -405,6 +508,7 @@ export default function InboxPage() {
                 selectedId={selectedId}
                 isLoading={isLoadingConversations}
                 onSelect={handleSelectConversation}
+                onNewConversation={() => setIsNewModalOpen(true)}
               />
             </div>
 
@@ -426,6 +530,8 @@ export default function InboxPage() {
                   isLoadingMessages={isLoadingMessages}
                   isSending={isSending}
                   sendError={sendError}
+                  messagesError={messagesError}
+                  onRetryMessages={() => fetchMessages()}
                   onSendMessage={handleSendMessage}
                   onSendTemplateMessage={handleSendTemplateMessage}
                   workspaceId={activeWorkspace.id}
@@ -433,19 +539,32 @@ export default function InboxPage() {
                   onBack={() => setMobileChatOpen(false)}
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-slate-400">
-                  <div className="text-center">
-                    <MessageCircle size={40} className="mx-auto" />
-                    <p className="mt-3 text-sm">
+                <div className="flex h-full items-center justify-center p-6 text-slate-400">
+                  <div className="max-w-sm text-center">
+                    <MessageCircle
+                      size={44}
+                      className="mx-auto text-slate-300"
+                    />
+                    <p className="mt-4 text-base font-semibold text-slate-700">
                       {conversations.length === 0
                         ? "No conversations yet"
                         : "Select a conversation"}
                     </p>
                     <p className="mt-1 text-xs text-slate-400">
                       {conversations.length === 0
-                        ? "Conversations appear when customers message your WhatsApp number."
-                        : "Choose a conversation from the list to view messages."}
+                        ? "Conversations appear when customers message your WhatsApp number, or you can start a chat directly."
+                        : "Choose a conversation from the sidebar list to view and send messages."}
                     </p>
+                    {conversations.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setIsNewModalOpen(true)}
+                        className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700"
+                      >
+                        <Plus size={15} />
+                        <span>Start New Conversation</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -455,7 +574,10 @@ export default function InboxPage() {
             <div className="hidden min-h-0 xl:block">
               {selectedConversation && (
                 <ContactPanel
-                  key={selectedConversation._id}
+                  key={
+                    selectedConversation._id ||
+                    (selectedConversation as { id?: string }).id
+                  }
                   conversation={selectedConversation}
                   onStatusChange={handleStatusChange}
                 />
@@ -465,9 +587,18 @@ export default function InboxPage() {
         </div>
 
         <p className="mt-4 text-xs leading-5 text-slate-400">
-          Workspace: {activeWorkspace.name} · Showing up to 50 most recent conversations.
+          Workspace: {activeWorkspace.name} · Showing up to 50 most recent
+          conversations.
         </p>
       </div>
+
+      {/* New conversation dialog */}
+      <NewConversationModal
+        workspaceId={activeWorkspace.id}
+        isOpen={isNewModalOpen}
+        onClose={() => setIsNewModalOpen(false)}
+        onConversationCreated={handleConversationCreated}
+      />
     </DashboardLayout>
   );
 }

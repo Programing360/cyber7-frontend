@@ -187,7 +187,7 @@ export const recentPlatformActivities: PlatformActivity[] = [
   {
     id: "ACT-003",
     title: "New user registered",
-    description: "Fahim Chowdhury joined Cyber7.",
+    description: "Fahim Chowdhury joined VexChat.",
     type: "user",
     createdAt: "2026-10-29T17:20:00",
   },

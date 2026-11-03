@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MessageCircle, Search } from "lucide-react";
+import { MessageCircle, Plus, Search } from "lucide-react";
 import type { WhatsAppConversationItem, WhatsAppConversationContact } from "@/src/types/api";
 
 interface ConversationListProps {
@@ -9,6 +9,7 @@ interface ConversationListProps {
   selectedId: string | null;
   isLoading: boolean;
   onSelect: (id: string) => void;
+  onNewConversation?: () => void;
 }
 
 type FilterType = "All" | "Unread" | "Open" | "Pending" | "Closed";
@@ -65,6 +66,7 @@ export default function ConversationList({
   selectedId,
   isLoading,
   onSelect,
+  onNewConversation,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("All");
@@ -103,8 +105,21 @@ export default function ConversationList({
             </p>
           </div>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-700">
-            <MessageCircle size={20} />
+          <div className="flex items-center gap-2">
+            {onNewConversation && (
+              <button
+                type="button"
+                onClick={onNewConversation}
+                title="Start new conversation"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-green-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700"
+              >
+                <Plus size={15} />
+                <span>New</span>
+              </button>
+            )}
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-50 text-green-700">
+              <MessageCircle size={18} />
+            </div>
           </div>
         </div>
 
@@ -158,9 +173,19 @@ export default function ConversationList({
             </p>
             <p className="mt-1 text-xs text-slate-400">
               {conversations.length === 0
-                ? "Conversations appear here when customers message your WhatsApp number."
+                ? "Conversations appear here when customers message your WhatsApp number, or when you start a new conversation."
                 : "Try another search or filter."}
             </p>
+            {conversations.length === 0 && onNewConversation && (
+              <button
+                type="button"
+                onClick={onNewConversation}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700"
+              >
+                <Plus size={14} />
+                <span>Start New Conversation</span>
+              </button>
+            )}
           </div>
         ) : (
           filtered.map((conv, index) => {
@@ -171,13 +196,14 @@ export default function ConversationList({
             const colorClass = avatarPalette[index % avatarPalette.length];
             const timeLabel = formatTime(conv.lastMessageAt ?? conv.updatedAt);
             const lastText = conv.lastMessage?.text ?? "";
-            const isSelected = selectedId === conv._id;
+            const convId = conv._id || (conv as { id?: string }).id || "";
+            const isSelected = selectedId === conv._id || selectedId === (conv as { id?: string }).id;
 
             return (
               <button
-                key={conv._id}
+                key={convId}
                 type="button"
-                onClick={() => onSelect(conv._id)}
+                onClick={() => onSelect(convId)}
                 className={`flex w-full gap-3 border-b border-slate-100 p-4 text-left transition ${
                   isSelected ? "bg-green-50/80" : "hover:bg-slate-50"
                 }`}

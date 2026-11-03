@@ -252,7 +252,7 @@ export default function SupportPage() {
 
     const newMessage = {
       id: `MSG-${Date.now()}`,
-      sender: "Cyber7 Support",
+      sender: "VexChat Support",
       role: "support" as const,
       message: reply.trim(),
       createdAt: new Date().toISOString(),
@@ -816,7 +816,7 @@ export default function SupportPage() {
             </section>
           )}
           <footer className="flex flex-col gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-            <p>Cyber7 Support Center</p>
+            <p>VexChat Support Center</p>
             {/* <p>
               Primary brand color:{" "}
               <span className="font-semibold text-slate-600">#88da1c</span>

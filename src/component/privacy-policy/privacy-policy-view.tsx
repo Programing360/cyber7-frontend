@@ -134,12 +134,12 @@ const CATEGORIES = [
 
 const FAQS = [
   {
-    q: "Does Cyber7 sell or rent customer phone numbers or chat conversations?",
-    a: "No. Absolutely never. Cyber7 does not monetize, sell, lease, or trade your contacts, phone numbers, or conversation content under any circumstances. You retain 100% ownership of your business data.",
+    q: "Does VexChat sell or rent customer phone numbers or chat conversations?",
+    a: "No. Absolutely never. VexChat does not monetize, sell, lease, or trade your contacts, phone numbers, or conversation content under any circumstances. You retain 100% ownership of your business data.",
   },
   {
-    q: "How does Cyber7 comply with Meta's WhatsApp Business Platform Terms?",
-    a: "Cyber7 connects directly to Meta's official WhatsApp Business Cloud API using verified tenant tokens, strict webhook validation (SHA-256 HMAC), and automated opt-out enforcement (STOP/CANCEL). We do not use unauthorized scraping, unofficial gateways, or non-compliant automation.",
+    q: "How does VexChat comply with Meta's WhatsApp Business Platform Terms?",
+    a: "VexChat connects directly to Meta's official WhatsApp Business Cloud API using verified tenant tokens, strict webhook validation (SHA-256 HMAC), and automated opt-out enforcement (STOP/CANCEL). We do not use unauthorized scraping, unofficial gateways, or non-compliant automation.",
   },
   {
     q: "Where is customer conversation data stored and encrypted?",
@@ -147,7 +147,7 @@ const FAQS = [
   },
   {
     q: "How can an end user or client request complete erasure of their WhatsApp data?",
-    a: "End users can send a WhatsApp message with the keyword 'DELETE MY DATA' directly to your verified business number or submit a request to privacy@cyber7.io. We process complete deletion requests within 30 days pursuant to GDPR Article 17 and CCPA guidelines.",
+    a: "End users can send a WhatsApp message with the keyword 'DELETE MY DATA' directly to your verified business number or submit a request to privacy@vexchat.io. We process complete deletion requests within 30 days pursuant to GDPR Article 17 and CCPA guidelines.",
   },
 ];
 
@@ -226,7 +226,7 @@ export default function PrivacyPolicyView() {
               </div>
               <div className="flex flex-col">
                 <span className="text-base font-extrabold tracking-tight text-slate-900">
-                  Cyber7
+                  VexChat
                 </span>
                 <span className="text-[10px] font-medium text-slate-500">
                   WhatsApp Business
@@ -292,12 +292,12 @@ export default function PrivacyPolicyView() {
           </div>
 
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            Cyber7 Privacy Policy & WhatsApp Data Governance
+            VexChat Privacy Policy & WhatsApp Data Governance
           </h1>
 
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            This Privacy Policy describes how Cyber7 collects, uses, protects,
-            and shares business and customer data in connection with the Cyber7
+            This Privacy Policy describes how VexChat collects, uses, protects,
+            and shares business and customer data in connection with the VexChat
             platform, services, and Meta&apos;s WhatsApp Business Cloud API.
           </p>
 
@@ -500,7 +500,7 @@ export default function PrivacyPolicyView() {
                 <div className="mt-4 space-y-2 text-xs">
                   <div className="flex items-center gap-2 text-slate-200">
                     <Mail size={13} className="text-lime-400" />
-                    <span className="font-mono">dpo@cyber7.io</span>
+                    <span className="font-mono">dpo@vexchat.io</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <Clock size={13} className="text-lime-400" />
@@ -508,7 +508,7 @@ export default function PrivacyPolicyView() {
                   </div>
                 </div>
                 <a
-                  href="mailto:dpo@cyber7.io?subject=Privacy%20Inquiry%20-%20Cyber7"
+                  href="mailto:dpo@vexchat.io?subject=Privacy%20Inquiry%20-%20VexChat"
                   className="mt-4 block w-full rounded-xl bg-lime-400 py-2 text-center text-xs font-bold text-slate-950 transition hover:bg-lime-300"
                 >
                   Email DPO Team
@@ -533,7 +533,7 @@ export default function PrivacyPolicyView() {
                     1. Introduction & Scope
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Entity: Cyber7 Technologies Inc. (&quot;Cyber7&quot;,
+                    Entity: VexChat Technologies Inc. (&quot;VexChat&quot;,
                     &quot;we&quot;, &quot;us&quot;, &quot;our&quot;)
                   </p>
                 </div>
@@ -541,7 +541,7 @@ export default function PrivacyPolicyView() {
 
               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
                 <p>
-                  Cyber7 provides a comprehensive B2B communications
+                  VexChat provides a comprehensive B2B communications
                   infrastructure and unified workspace platform for WhatsApp
                   Business Cloud API messaging, contact management, team
                   collaboration, automated workflows, and message campaign
@@ -549,7 +549,7 @@ export default function PrivacyPolicyView() {
                 </p>
                 <p>
                   This Privacy Policy applies to all users of our web
-                  applications (accessible at <code>cyber7.io</code> and its
+                  applications (accessible at <code>vexchat.io</code> and its
                   subdomains), APIs, integration gateways, and associated
                   services.
                 </p>
@@ -561,13 +561,13 @@ export default function PrivacyPolicyView() {
                   </h4>
                   <ul className="mt-2 list-disc pl-5 text-xs text-lime-900 space-y-1">
                     <li>
-                      <strong>Cyber7 as Data Controller:</strong> We act as the
+                      <strong>VexChat as Data Controller:</strong> We act as the
                       Data Controller for the account information, billing
                       records, platform configuration settings, and analytical
                       usage data of our business customers.
                     </li>
                     <li>
-                      <strong>Cyber7 as Data Processor:</strong> We act as a
+                      <strong>VexChat as Data Processor:</strong> We act as a
                       Data Processor on behalf of our business customers
                       regarding the phone numbers, message contents, customer
                       names, tags, and contact metadata transmitted through the
@@ -687,9 +687,9 @@ export default function PrivacyPolicyView() {
 
               <div className="space-y-4 text-sm leading-relaxed text-slate-600">
                 <p>
-                  Cyber7 is integrated with Meta&apos;s official WhatsApp
+                  VexChat is integrated with Meta&apos;s official WhatsApp
                   Business Cloud API. By using our platform to interact with
-                  WhatsApp users, both Cyber7 and your business agree to adhere
+                  WhatsApp users, both VexChat and your business agree to adhere
                   to the{" "}
                   <a
                     href="https://www.whatsapp.com/legal/business-terms"
@@ -714,7 +714,7 @@ export default function PrivacyPolicyView() {
                 <div className="rounded-xl bg-slate-900 p-5 text-white">
                   <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-lime-400">
                     <KeyRound size={16} />
-                    WhatsApp Data Safeguards Enforced by Cyber7
+                    WhatsApp Data Safeguards Enforced by VexChat
                   </h4>
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 text-xs text-slate-300">
                     <div className="rounded-lg bg-slate-800/80 p-3">
@@ -851,7 +851,7 @@ export default function PrivacyPolicyView() {
 
               <div className="space-y-4 text-sm leading-relaxed text-slate-600">
                 <p>
-                  Cyber7 implements industry-standard technical and
+                  VexChat implements industry-standard technical and
                   organizational security measures designed to protect your
                   information from unauthorized access, destruction, alteration,
                   or disclosure.
@@ -863,7 +863,7 @@ export default function PrivacyPolicyView() {
                       Encryption in Transit
                     </span>
                     <p className="mt-1.5 text-xs text-slate-600">
-                      All communications between clients, Cyber7, and Meta Cloud
+                      All communications between clients, VexChat, and Meta Cloud
                       API are enforced using <strong>TLS 1.3</strong> with
                       strict HSTS.
                     </p>
@@ -898,7 +898,7 @@ export default function PrivacyPolicyView() {
                   <p className="mt-1 text-xs text-slate-600">
                     Where personal data originating in the European Economic
                     Area (EEA) or UK is transferred to infrastructure in the
-                    United States or elsewhere, Cyber7 relies on standard
+                    United States or elsewhere, VexChat relies on standard
                     contractual clauses (SCCs) approved by the European
                     Commission and equivalent UK International Data Transfer
                     Addendums.
@@ -921,14 +921,14 @@ export default function PrivacyPolicyView() {
                     6. Sub-processors & Third-Party Service Providers
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Approved vendors used to provide the Cyber7 service
+                    Approved vendors used to provide the VexChat service
                   </p>
                 </div>
               </div>
 
               <div className="space-y-4 text-sm leading-relaxed text-slate-600">
                 <p>
-                  Cyber7 utilizes selected sub-processors to assist in
+                  VexChat utilizes selected sub-processors to assist in
                   delivering cloud infrastructure, messaging routing, and
                   billing. All sub-processors enter into binding Data Processing
                   Agreements (DPAs):
@@ -1028,7 +1028,7 @@ export default function PrivacyPolicyView() {
 
               <div className="space-y-4 text-sm leading-relaxed text-slate-600">
                 <p>
-                  Cyber7 retains personal data only for as long as necessary to
+                  VexChat retains personal data only for as long as necessary to
                   fulfill the purposes for which it was collected, as specified
                   in your workspace retention settings or as required by
                   applicable law.
@@ -1174,12 +1174,12 @@ export default function PrivacyPolicyView() {
                     </h5>
                     <p className="text-xs text-lime-900">
                       Submit an official request to our Data Protection Officer
-                      at <code>dpo@cyber7.io</code>. We do not charge fees and
+                      at <code>dpo@vexchat.io</code>. We do not charge fees and
                       respond within 30 days.
                     </p>
                   </div>
                   <a
-                    href="mailto:dpo@cyber7.io?subject=GDPR%20Data%20Subject%20Request"
+                    href="mailto:dpo@vexchat.io?subject=GDPR%20Data%20Subject%20Request"
                     className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
                   >
                     <span>Submit Request</span>
@@ -1220,7 +1220,7 @@ export default function PrivacyPolicyView() {
                     Automated Inbound Keyword Detection
                   </h4>
                   <p className="mt-1 text-xs text-slate-600">
-                    Cyber7 engines monitor incoming webhook events for
+                    VexChat engines monitor incoming webhook events for
                     recognized opt-out phrases:
                   </p>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -1275,7 +1275,7 @@ export default function PrivacyPolicyView() {
                 <p>
                   Pursuant to Meta Platform Rules and developer guidelines for
                   the WhatsApp Business Cloud API, end users whose messages or
-                  profiles have been processed via Cyber7 have the right to
+                  profiles have been processed via VexChat have the right to
                   request immediate and complete deletion of their information.
                 </p>
 
@@ -1297,10 +1297,10 @@ export default function PrivacyPolicyView() {
                     <li>
                       <strong>Option B (Email Request):</strong> Email{" "}
                       <a
-                        href="mailto:deletion@cyber7.io"
+                        href="mailto:deletion@vexchat.io"
                         className="text-lime-400 underline font-mono"
                       >
-                        deletion@cyber7.io
+                        deletion@vexchat.io
                       </a>{" "}
                       with the subject line{" "}
                       <span className="font-mono text-slate-200">
@@ -1313,7 +1313,7 @@ export default function PrivacyPolicyView() {
                       <strong>Option C (Facebook / Meta Settings):</strong> If
                       you logged in using Facebook Login or Meta credentials, go
                       to your Facebook profile &gt; Settings &amp; Privacy &gt;
-                      Settings &gt; Apps and Websites &gt; Cyber7 &gt; click
+                      Settings &gt; Apps and Websites &gt; VexChat &gt; click
                       &quot;Remove&quot; and check &quot;Delete data&quot;.
                     </li>
                   </ol>
@@ -1355,7 +1355,7 @@ export default function PrivacyPolicyView() {
 
               <div className="space-y-4 text-sm leading-relaxed text-slate-600">
                 <p>
-                  Cyber7 uses cookies and similar browser storage technologies
+                  VexChat uses cookies and similar browser storage technologies
                   strictly to ensure secure session authentication, prevent CSRF
                   attacks, and remember your workspace UI preferences.
                 </p>
@@ -1421,38 +1421,38 @@ export default function PrivacyPolicyView() {
                     <p className="mt-2 text-xs text-slate-600">
                       <strong>Email:</strong>{" "}
                       <a
-                        href="mailto:dpo@cyber7.io"
+                        href="mailto:dpo@vexchat.io"
                         className="text-lime-700 underline font-mono"
                       >
-                        dpo@cyber7.io
+                        dpo@vexchat.io
                       </a>
                     </p>
                     <p className="mt-1 text-xs text-slate-600">
                       <strong>General Legal:</strong>{" "}
                       <a
-                        href="mailto:legal@cyber7.io"
+                        href="mailto:legal@vexchat.io"
                         className="text-lime-700 underline font-mono"
                       >
-                        legal@cyber7.io
+                        legal@vexchat.io
                       </a>
                     </p>
                     <p className="mt-1 text-xs text-slate-600">
                       <strong>Data Deletions:</strong>{" "}
                       <a
-                        href="mailto:deletion@cyber7.io"
+                        href="mailto:deletion@vexchat.io"
                         className="text-lime-700 underline font-mono"
                       >
-                        deletion@cyber7.io
+                        deletion@vexchat.io
                       </a>
                     </p>
                   </div>
 
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                      Cyber7 Corporate Headquarters
+                      VexChat Corporate Headquarters
                     </h4>
                     <p className="mt-2 text-xs text-slate-600">
-                      Cyber7 Technologies Inc.
+                      VexChat Technologies Inc.
                       <br />
                       Attn: Privacy & Data Protection Officer
                       <br />
@@ -1532,10 +1532,10 @@ export default function PrivacyPolicyView() {
                 <MessageCircle size={18} className="stroke-[2.5]" />
               </div>
               <span className="text-sm font-bold tracking-tight text-slate-900">
-                Cyber7 Platform
+                VexChat Platform
               </span>
               <span className="text-xs text-slate-400">
-                © Cyber7 Technologies Inc. All rights reserved.
+                © VexChat Technologies Inc. All rights reserved.
               </span>
             </div>
 
