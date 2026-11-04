@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+
 import "./globals.css";
 import { AuthProvider } from "@/src/context/auth-context";
 import { WorkspaceProvider } from "@/src/context/workspace-context";

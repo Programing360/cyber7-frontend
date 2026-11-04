@@ -1,90 +1,129 @@
-import Link from "next/link";
-import { ArrowRight, MessageCircle, ShieldCheck } from "lucide-react";
+"use client";
 
-export default function HomePage() {
+import AiAssistantDemo from "@/src/component/main/AiAssistantDemo";
+import ApiDocumentation from "@/src/component/main/ApiDocumentation";
+import AutomationVisualizer from "@/src/component/main/AutomationVisualizer";
+import BentoFeatures from "@/src/component/main/BentoFeatures";
+import CallingFeature from "@/src/component/main/CallingFeature";
+import ComplianceSection from "@/src/component/main/ComplianceSection";
+import CtaBanner from "@/src/component/main/CtaBanner";
+import FaqSection from "@/src/component/main/FaqSection";
+import Footer from "@/src/component/main/footer";
+import HeroSection from "@/src/component/main/HeroSection";
+import InboxSimulator from "@/src/component/main/InboxSimulator";
+import Modals from "@/src/component/main/Modals";
+import Navbar from "@/src/component/main/navbar";
+import PaymentMethods from "@/src/component/main/PaymentMethods";
+import PricingCalculator from "@/src/component/main/PricingCalculator";
+import React, { useState } from "react";
+
+
+export default function Home() {
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [selectedPlanInfo, setSelectedPlanInfo] = useState<{ name: string; price: string } | undefined>(
+    undefined
+  );
+
+  const handleOpenDemo = (planName?: string, price?: string) => {
+    if (planName && price) {
+      setSelectedPlanInfo({ name: planName, price });
+    } else {
+      setSelectedPlanInfo(undefined);
+    }
+    setDemoOpen(true);
+  };
+
+  const handleCloseModals = () => {
+    setDemoOpen(false);
+    setContactOpen(false);
+    setTermsOpen(false);
+    setPrivacyOpen(false);
+    setRefundOpen(false);
+  };
+
+  const scrollToInbox = () => {
+    const el = document.getElementById("inbox-demo");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-12">
-      <section className="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm sm:p-12">
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-green-700">
-              <MessageCircle size={26} />
-            </div>
+    <div className="min-h-screen flex flex-col bg-[#f7f9f4]">
+      {/* Navigation */}
+      <Navbar
+        onOpenDemoModal={() => handleOpenDemo()}
+        onOpenContactModal={() => setContactOpen(true)}
+      />
 
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900">
-                VexChat
-              </h1>
-              <p className="text-sm text-slate-500">WhatsApp Business Platform</p>
-            </div>
-          </div>
+      <main className="flex-1">
+        {/* 1. Hero Section */}
+        <HeroSection
+          onOpenDemoModal={() => handleOpenDemo()}
+          onExploreDemo={scrollToInbox}
+        />
 
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Sign In
-          </Link>
-        </div>
+        {/* 2. Interactive WhatsApp Inbox Live Simulator (PDF Sec 1 & 6) */}
+        <InboxSimulator />
 
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700">
-          <ShieldCheck size={16} />
-          WhatsApp Business Platform
-        </div>
+        {/* 3. WhatsApp Business Calling & Call Center System (PDF Sec 35) */}
+        <CallingFeature />
 
-        <h2 className="max-w-xl text-3xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-          Manage your business conversations in one place.
-        </h2>
+        {/* 4. Core SaaS Bento Features (PDF Sec 2, 3, 4, 13, 14, 27) */}
+        <BentoFeatures />
 
-        <p className="mt-5 max-w-xl leading-7 text-slate-600">
-          A unified workspace for customer conversations, contact management,
-          messaging campaigns, team collaboration, and business analytics.
-        </p>
+        {/* 5. Workflow Automation Engine (PDF Sec 12) */}
+        <AutomationVisualizer />
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 font-semibold text-white transition hover:bg-green-700"
-          >
-            Open Dashboard
-            <ArrowRight size={18} />
-          </Link>
+        {/* 6. AI Troubleshooting & Client Assistant (PDF Sec 10) */}
+        <AiAssistantDemo />
 
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Sign In
-          </Link>
+        {/* 7. Meta Official Compliance & Multi-Tenant Security (PDF Sec 26, 27, 34) */}
+        <ComplianceSection />
 
-          <span className="inline-flex items-center rounded-xl border border-slate-200 px-5 py-3 text-sm text-slate-600">
-            Workspace Scoped
-          </span>
-        </div>
+        {/* 8. Pricing & Meta Conversation Estimator (PDF Sec 8 & 24) */}
+        <PricingCalculator
+          onSelectPlan={(name, price) => handleOpenDemo(name, price)}
+        />
 
-        <div className="mt-8 flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between text-xs text-slate-400">
-          <p className="leading-5">
-            Workspace-scoped contacts, conversations, and WhatsApp account
-            management in one platform.
-          </p>
+        {/* 9. Payment Methods & Automated Flow (PDF Sec 7 & 9 - bKash, Nagad, Visa, Crypto) */}
+        <PaymentMethods />
 
-          <div className="flex shrink-0 items-center gap-3">
-            <Link
-              href="/privacy-policy"
-              className="font-medium text-slate-600 underline hover:text-slate-900"
-            >
-              Privacy Policy
-            </Link>
-            <span>•</span>
-            <Link
-              href="/terms-of-service"
-              className="font-medium text-slate-600 underline hover:text-slate-900"
-            >
-              Terms of Service
-            </Link>
-          </div>
-        </div>
-      </section>
-    </main>
+        {/* 10. Developer API & Idempotent Webhooks (PDF Sec 18 & 19) */}
+        <ApiDocumentation />
+
+        {/* 11. Frequently Asked Questions (PDF Sec 13) */}
+        <FaqSection />
+
+        {/* 12. Conversion CTA Banner */}
+        <CtaBanner
+          onOpenDemoModal={() => handleOpenDemo()}
+          onOpenContactModal={() => setContactOpen(true)}
+        />
+      </main>
+
+      {/* 13. Comprehensive SaaS Footer (Disclaimers, Terms, Privacy, Contacts) */}
+      <Footer
+        onOpenTerms={() => setTermsOpen(true)}
+        onOpenPrivacy={() => setPrivacyOpen(true)}
+        onOpenRefund={() => setRefundOpen(true)}
+        onOpenContact={() => setContactOpen(true)}
+      />
+
+      {/* Interactive Modal Windows */}
+      <Modals
+        demoOpen={demoOpen}
+        contactOpen={contactOpen}
+        termsOpen={termsOpen}
+        privacyOpen={privacyOpen}
+        refundOpen={refundOpen}
+        selectedPlanInfo={selectedPlanInfo}
+        onClose={handleCloseModals}
+      />
+    </div>
   );
 }
