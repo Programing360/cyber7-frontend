@@ -30,7 +30,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  console.log(login);
+  // console.log(login);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -136,6 +136,11 @@ export function useWhatsAppCall({
     }
   }, []);
 
+  const onCallEndedRef = useRef(onCallEnded);
+  useEffect(() => {
+    onCallEndedRef.current = onCallEnded;
+  }, [onCallEnded]);
+
   // Socket.IO Authenticated Connection and Calling Event Handlers
   useEffect(() => {
     if (!workspaceId) return;
@@ -155,7 +160,16 @@ export function useWhatsAppCall({
     });
     socketRef.current = socket;
 
+    // 2. সার্ভার কানেকশন রিজেক্ট করলে আসল কারণ এখানে দেখতে পাবেন
+    socket.on("connect_error", (err) => {
+      console.error("[useWhatsAppCall] Socket Connect Error:", err.message);
+    });
+
     socket.on("connect", () => {
+      console.log(
+        "[useWhatsAppCall] Socket connected successfully:",
+        socket.id,
+      );
       socket.emit("join-workspace", workspaceId);
     });
 
@@ -304,7 +318,9 @@ export function useWhatsAppCall({
       console.warn("[useWhatsAppCall] Backend socket error:", err);
 
       if (err.code === "CALL_NOT_AVAILABLE") {
-        setCallNotice("This call was answered by another agent or is no longer available.");
+        setCallNotice(
+          "This call was answered by another agent or is no longer available.",
+        );
         setCallState("ended");
         setTimeout(() => {
           setCallState("idle");
@@ -313,7 +329,9 @@ export function useWhatsAppCall({
           setCallNotice(null);
         }, 2000);
       } else if (err.code === "META_CALLING_NOT_IMPLEMENTED") {
-        setCallError("Outgoing WhatsApp calling is not configured yet on this workspace.");
+        setCallError(
+          "Outgoing WhatsApp calling is not configured yet on this workspace.",
+        );
       } else {
         setCallError(err.message || "Call error occurred.");
       }
@@ -387,7 +405,9 @@ export function useWhatsAppCall({
     callSounds.stopAll();
 
     if (!socketRef.current || !workspaceId || !activeCallIdRef.current) {
-      console.warn("[useWhatsAppCall] Cannot answer: missing socket or call ID");
+      console.warn(
+        "[useWhatsAppCall] Cannot answer: missing socket or call ID",
+      );
       return;
     }
 

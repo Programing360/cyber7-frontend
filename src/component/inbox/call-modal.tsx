@@ -51,6 +51,8 @@ export default function CallModal({
 }: CallModalProps) {
   if (!isOpen || !call || callState === "idle") return null;
 
+  console.log(error, notice);
+
   const formatTimer = (secs: number) => {
     const mins = Math.floor(secs / 60);
     const remaining = secs % 60;
