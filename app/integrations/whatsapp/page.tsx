@@ -59,7 +59,7 @@ export default function WhatsAppIntegrationPage() {
   const [phoneNumberId, setPhoneNumberId] = useState("");
   const [businessAccountId, setBusinessAccountId] = useState("");
   const [accessToken, setAccessToken] = useState("");
-
+  console.log(businessAccountId);
   const role = activeWorkspace?.role;
   const canManage = role === "OWNER" || role === "ADMIN";
 
@@ -705,7 +705,7 @@ export default function WhatsAppIntegrationPage() {
                       id="business-account-id"
                       type="text"
                       required
-                      value={businessAccountId}
+                      // value={businessAccountId}
                       onChange={(e) => setBusinessAccountId(e.target.value)}
                       placeholder="e.g. 100234567890123"
                       className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20"

@@ -23,7 +23,10 @@ import type {
 
 interface ContactPanelProps {
   conversation: WhatsAppConversationItem;
-  onStatusChange: (conversationId: string, status: ConversationStatus) => Promise<void>;
+  onStatusChange: (
+    conversationId: string,
+    status: ConversationStatus,
+  ) => Promise<void>;
 }
 
 function getContact(
@@ -70,13 +73,10 @@ export default function ContactPanel({
 
   const contact = getContact(conversation);
   const assignee = getAssignee(conversation);
-  const displayName =
-    contact?.profileName || contact?.phoneNumber || "Unknown";
+  const displayName = contact?.profileName || contact?.phoneNumber || "Unknown";
   const initials = getInitials(contact?.profileName, contact?.phoneNumber);
 
-  async function handleStatusChange(
-    newStatus: ConversationStatus,
-  ) {
+  async function handleStatusChange(newStatus: ConversationStatus) {
     if (newStatus === status || isUpdating) return;
 
     setIsUpdating(true);
@@ -91,7 +91,7 @@ export default function ContactPanel({
   }
 
   return (
-    <aside className="h-full overflow-y-auto border-l border-slate-200 bg-white">
+    <aside className="h-full overflow-y-auto shadow-lg shadow-blue-200 border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-5 py-6 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-purple-100 text-lg font-bold text-purple-700">
           {initials}
@@ -165,7 +165,9 @@ export default function ContactPanel({
               <div className="min-w-0">
                 <p className="text-[10px] text-slate-400">Assigned to</p>
                 <p className="mt-1 text-xs font-medium text-slate-700">
-                  {assignee ? `${assignee.name} (${assignee.email})` : "Unassigned"}
+                  {assignee
+                    ? `${assignee.name} (${assignee.email})`
+                    : "Unassigned"}
                 </p>
               </div>
             </div>
@@ -174,22 +176,34 @@ export default function ContactPanel({
               <Clock size={17} className="shrink-0 text-slate-400" />
 
               <div className="min-w-0">
-                <p className="text-[10px] text-slate-400">24-Hour Service Window</p>
+                <p className="text-[10px] text-slate-400">
+                  24-Hour Service Window
+                </p>
                 {conversation.isCustomerServiceWindowActive ? (
                   <p className="mt-1 flex items-center gap-1 text-xs font-medium text-emerald-700">
-                    <CheckCircle2 size={13} className="shrink-0 text-emerald-600" />
+                    <CheckCircle2
+                      size={13}
+                      className="shrink-0 text-emerald-600"
+                    />
                     Active
                   </p>
                 ) : (
                   <p className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-700">
-                    <AlertTriangle size={13} className="shrink-0 text-amber-600" />
+                    <AlertTriangle
+                      size={13}
+                      className="shrink-0 text-amber-600"
+                    />
                     Expired (Template required)
                   </p>
                 )}
                 {conversation.customerServiceWindowExpiresAt && (
                   <p className="mt-0.5 text-[10px] text-slate-400">
-                    {conversation.isCustomerServiceWindowActive ? "Expires: " : "Expired: "}
-                    {new Date(conversation.customerServiceWindowExpiresAt).toLocaleTimeString([], {
+                    {conversation.isCustomerServiceWindowActive
+                      ? "Expires: "
+                      : "Expired: "}
+                    {new Date(
+                      conversation.customerServiceWindowExpiresAt,
+                    ).toLocaleTimeString([], {
                       month: "short",
                       day: "numeric",
                       hour: "2-digit",

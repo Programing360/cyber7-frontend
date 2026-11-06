@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/whatsapp-status.test.ts"
+    "test": "node --test tests/whatsapp-status.test.ts tests/proxy-security.test.ts tests/billing-frontend.test.ts tests/admin-containment.test.ts tests/admin-dashboard.test.ts tests/admin-bff.test.ts"
   },
   "dependencies": {
     "@heroui/react": "^3.2.7",
@@ -20,6 +20,7 @@
     "react-dom": "19.3.0",
     "react-hook-form": "^7.91.0",
     "recharts": "^3.10.1",
+    "socket.io-client": "^4.8.4",
     "tailwind-merge": "^3.7.0",
     "zod": "^4.6.7"
   },

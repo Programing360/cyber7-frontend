@@ -159,6 +159,34 @@ function StatCard({
 }
 
 export default function SuperAdminPage() {
+  return (
+    <DashboardLayout>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+          <ShieldAlert size={28} />
+        </div>
+        <h2 className="text-xl font-bold tracking-tight text-slate-900">
+          Platform Administration Unavailable
+        </h2>
+        <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+          Mock administrative data and platform controls have been decommissioned.
+          Workspace roles (Owner, Admin, Agent) do not grant platform administrative privileges.
+        </p>
+        <div className="mt-6">
+          <a
+            href="/dashboard"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#88da1c] px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-[#78c418]"
+          >
+            Return to Dashboard
+          </a>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+// Preserved for future Platform Admin layout reference; decommissioned from customer access.
+export function InactiveMockSuperAdminDashboard() {
   const [users, setUsers] = useState<AdminUser[]>(initialUsers);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | AdminUserStatus>(

@@ -18,15 +18,12 @@ interface PricingCalculatorProps {
 }
 
 export default function PricingCalculator({ onSelectPlan }: PricingCalculatorProps) {
-    const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
-    const [currency, setCurrency] = useState<"BDT" | "USD">("BDT");
-
     // Meta Calculator State
     const [marketingVolume, setMarketingVolume] = useState<number>(5000);
     const [utilityVolume, setUtilityVolume] = useState<number>(3000);
     const [serviceVolume, setServiceVolume] = useState<number>(2000);
 
-    // Meta per-conversation approximate standard rate (BDT / USD)
+    // Meta per-conversation approximate standard rate (BDT)
     const marketingRateBDT = 0.95;
     const utilityRateBDT = 0.40;
     const serviceRateBDT = 0.35;
@@ -41,8 +38,7 @@ export default function PricingCalculator({ onSelectPlan }: PricingCalculatorPro
         {
             name: "Starter",
             description: "Ideal for growing startups and local boutique stores.",
-            priceBDT: billingCycle === "yearly" ? 2400 : 3000,
-            priceUSD: billingCycle === "yearly" ? 22 : 28,
+            priceBDT: 3000,
             popular: false,
             features: [
                 "1 Connected WhatsApp Business Number",
@@ -50,7 +46,7 @@ export default function PricingCalculator({ onSelectPlan }: PricingCalculatorPro
                 "Official Meta Cloud API Onboarding",
                 "Shared Team Inbox & Conversation History",
                 "WhatsApp Template Management",
-                "bKash & Nagad Direct Checkout",
+                "bKash & City Bank Card Checkout",
                 "Customer Mini CRM & Contact Tags",
                 "Standard Email Support",
             ],
@@ -59,8 +55,7 @@ export default function PricingCalculator({ onSelectPlan }: PricingCalculatorPro
         {
             name: "Business Pro",
             description: "Best for scaling companies needing team routing & campaigns.",
-            priceBDT: billingCycle === "yearly" ? 5900 : 7400,
-            priceUSD: billingCycle === "yearly" ? 55 : 69,
+            priceBDT: 7400,
             popular: true,
             features: [
                 "2 Connected WhatsApp Numbers",
@@ -78,8 +73,7 @@ export default function PricingCalculator({ onSelectPlan }: PricingCalculatorPro
         {
             name: "Enterprise",
             description: "For high-volume brands requiring multi-number scalability.",
-            priceBDT: billingCycle === "yearly" ? 14900 : 18600,
-            priceUSD: billingCycle === "yearly" ? 139 : 175,
+            priceBDT: 18600,
             popular: false,
             features: [
                 "Unlimited WhatsApp Business Numbers",
@@ -102,7 +96,7 @@ export default function PricingCalculator({ onSelectPlan }: PricingCalculatorPro
                 <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
                     <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 mb-4">
                         <CreditCard className="h-4 w-4 text-emerald-600" />
-                        <span>Transparent Subscription (PDF Sec 8 & 24)</span>
+                        <span>Transparent Subscription (Strictly Monthly BDT)</span>
                     </div>
                     <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
                         Simple, Predictable Pricing. <br className="hidden sm:block" />
@@ -110,63 +104,22 @@ export default function PricingCalculator({ onSelectPlan }: PricingCalculatorPro
                     </h2>
                     <p className="mt-4 text-sm sm:text-lg text-slate-600">
                         Pay a flat SaaS fee for VexChat's team inbox and automation platform, with direct transparent Meta
-                        conversation fees. Pay locally via bKash, Nagad, Card, or Crypto.
+                        conversation fees. All plans are billed strictly on a monthly basis in Bangladeshi Taka (BDT).
                     </p>
 
-                    {/* Billing Cycle & Currency Switcher */}
-                    <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-6">
-                        {/* Monthly / Yearly Toggle */}
-                        <div className="inline-flex items-center p-1 rounded-2xl bg-slate-100 border border-slate-200">
-                            <button
-                                onClick={() => setBillingCycle("monthly")}
-                                className={`px-4 sm:px-5 py-2 rounded-xl text-xs font-bold transition ${billingCycle === "monthly"
-                                        ? "bg-white text-slate-900 shadow-sm"
-                                        : "text-slate-600 hover:text-slate-900"
-                                    }`}
-                            >
-                                Monthly Billing
-                            </button>
-                            <button
-                                onClick={() => setBillingCycle("yearly")}
-                                className={`px-4 sm:px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${billingCycle === "yearly"
-                                        ? "bg-emerald-600 text-white shadow-sm"
-                                        : "text-slate-600 hover:text-slate-900"
-                                    }`}
-                            >
-                                <span>Yearly</span>
-                                <span className="bg-emerald-200 text-emerald-950 text-[10px] px-1.5 py-0.2 rounded-full font-extrabold">
-                                    SAVE 20%
-                                </span>
-                            </button>
-                        </div>
-
-                        {/* Currency Switcher */}
-                        <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold">
-                            <button
-                                onClick={() => setCurrency("BDT")}
-                                className={`px-3 py-1.5 rounded-lg transition ${currency === "BDT" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-600"
-                                    }`}
-                            >
-                                BDT (৳)
-                            </button>
-                            <button
-                                onClick={() => setCurrency("USD")}
-                                className={`px-3 py-1.5 rounded-lg transition ${currency === "USD" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-600"
-                                    }`}
-                            >
-                                USD ($)
-                            </button>
-                        </div>
+                    {/* Subscription Guarantee Badge */}
+                    <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                        <span className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">
+                            <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                            Strictly Monthly Billing • Denominated in BDT (৳) • Manual Renewal Only
+                        </span>
                     </div>
                 </div>
 
                 {/* Pricing Cards - 1 col on mobile & tablet, 3 cols on desktop (lg:) so cards never get squished! */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-stretch mb-16 sm:mb-20 max-w-lg lg:max-w-none mx-auto">
                     {plans.map((plan) => {
-                        const price =
-                            currency === "BDT"
-                                ? `৳${plan.priceBDT.toLocaleString()}`
-                                : `$${plan.priceUSD.toLocaleString()}`;
+                        const price = `৳${plan.priceBDT.toLocaleString()}`;
 
                         return (
                             <div
@@ -209,7 +162,7 @@ export default function PricingCalculator({ onSelectPlan }: PricingCalculatorPro
                                             className={`text-[11px] block mt-1 ${plan.popular ? "text-emerald-400 font-medium" : "text-emerald-700 font-medium"
                                                 }`}
                                         >
-                                            {billingCycle === "yearly" ? "Billed annually (Save 20%)" : "Billed monthly"}
+                                            Billed monthly (Manual Renewal)
                                         </span>
                                     </div>
 
@@ -343,9 +296,7 @@ export default function PricingCalculator({ onSelectPlan }: PricingCalculatorPro
                         <div className="flex items-center gap-2 sm:gap-3">
                             <span className="text-xs text-slate-400">Estimated Charge:</span>
                             <span className="text-xl sm:text-2xl font-extrabold text-emerald-700">
-                                {currency === "BDT"
-                                    ? `~ ৳${estimatedMetaCostBDT.toLocaleString()}`
-                                    : `~ $${Math.round(estimatedMetaCostBDT / 115).toLocaleString()}`}
+                                ~ ৳{estimatedMetaCostBDT.toLocaleString()}
                             </span>
                         </div>
                     </div>

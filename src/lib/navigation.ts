@@ -10,7 +10,6 @@ import {
   CreditCard,
   Settings,
   Headset,
-  ShieldCheck,
   Plug,
   type LucideIcon,
 } from "lucide-react";
@@ -100,16 +99,6 @@ export const navigationGroups: NavigationGroup[] = [
         label: "Support",
         href: "/support",
         icon: Headset,
-      },
-    ],
-  },
-  {
-    title: "ADMINISTRATION",
-    items: [
-      {
-        label: "Super Admin",
-        href: "/super-admin",
-        icon: ShieldCheck,
       },
     ],
   },

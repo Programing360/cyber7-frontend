@@ -1,0 +1,439 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Eye,
+  KeyRound,
+  RotateCcw,
+  Shield,
+  ShieldAlert,
+  UserCheck,
+  Users,
+  XCircle,
+} from "lucide-react";
+import AdminFilters from "@/src/component/admin/admin-filters";
+import AdminPagination from "@/src/component/admin/admin-pagination";
+import AdminStatusBadge from "@/src/component/admin/admin-status-badge";
+import AdminDetailDrawer from "@/src/component/admin/admin-detail-drawer";
+import AdminUnimplementedModal from "@/src/component/admin/admin-unimplemented-modal";
+import { adminService } from "@/src/services/admin-service";
+import type { AdminPlatformUser } from "@/src/types/admin";
+
+export default function AdminUsersPage() {
+  const [users, setUsers] = useState<AdminPlatformUser[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [selectedUser, setSelectedUser] = useState<AdminPlatformUser | null>(
+    null,
+  );
+  const [mutationModalOpen, setMutationModalOpen] = useState(false);
+  const [mutationActionTitle, setMutationActionTitle] = useState("");
+  const [missingEndpoint, setMissingEndpoint] = useState(
+    "PATCH /api/admin/users/:userId/role",
+  );
+
+  const loadUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await adminService.listUsers({
+        search,
+        role: roleFilter,
+        page,
+        limit: 10,
+      });
+      setUsers(res.items);
+      setTotal(res.total);
+      setTotalPages(res.totalPages);
+    } catch (err: any) {
+      if (err?.status === 403 || err?.code === "PLATFORM_ROLE_UNAUTHORIZED") {
+        setError("PLATFORM_ROLE_UNAUTHORIZED");
+      } else {
+        setError("Failed to load user directory. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, [search, roleFilter, page]);
+
+  const handleActionClick = (
+    actionName: string,
+    endpoint = "PATCH /api/admin/users/:userId/role",
+  ) => {
+    setMutationActionTitle(actionName);
+    setMissingEndpoint(endpoint);
+    setMutationModalOpen(true);
+  };
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setRoleFilter("ALL");
+    setPage(1);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Title */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+            User & Platform Role Management
+          </h2>
+          <p className="text-xs text-slate-500 sm:text-sm">
+            Manage platform users, roles (SUPER_ADMIN, FINANCE_ADMIN, USER), and tenant associations
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+            Backend Status: SUPER_ADMIN ONLY
+          </span>
+        </div>
+      </div>
+
+      {/* Role Architecture Clarification Notice */}
+      <div className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 text-xs text-indigo-950">
+        <div className="flex items-start gap-2.5">
+          <Shield size={16} className="text-indigo-600 mt-0.5 shrink-0" />
+          <div>
+            <strong className="font-bold">Role Architecture Clarification:</strong>{" "}
+            Platform roles (<code>SUPER_ADMIN</code>, <code>FINANCE_ADMIN</code>, <code>USER</code>)
+            govern system-wide administrative access. They are completely separate from customer
+            workspace roles (<code>OWNER</code>, <code>ADMIN</code>, <code>AGENT</code>). A workspace
+            OWNER does not have platform administrative privileges.
+          </div>
+        </div>
+      </div>
+
+      {/* Error / Unauthorized state alert */}
+      {error && (
+        error === "PLATFORM_ROLE_UNAUTHORIZED" ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 mb-3">
+              <ShieldAlert size={20} />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900">
+              Access Restricted — SUPER_ADMIN Privileges Required
+            </h3>
+            <p className="mt-1 text-xs text-slate-600 max-w-md mx-auto">
+              Your administrator account is signed in with FINANCE_ADMIN privileges. Inspecting system-wide user directories and platform roles is restricted to SUPER_ADMIN sessions.
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle size={16} className="text-rose-600 shrink-0" />
+              <span>{error}</span>
+            </div>
+            <button
+              onClick={loadUsers}
+              className="inline-flex items-center gap-1 font-bold underline hover:no-underline"
+            >
+              <RotateCcw size={12} />
+              <span>Retry</span>
+            </button>
+          </div>
+        )
+      )}
+
+      {/* Filters */}
+      <AdminFilters
+        searchValue={search}
+        onSearchChange={(v) => {
+          setSearch(v);
+          setPage(1);
+        }}
+        searchPlaceholder="Search by user name or email..."
+        dropdowns={[
+          {
+            name: "role",
+            label: "Platform Role",
+            value: roleFilter,
+            options: [
+              { label: "All Platform Roles", value: "ALL" },
+              { label: "Super Admin", value: "SUPER_ADMIN" },
+              { label: "Finance Admin", value: "FINANCE_ADMIN" },
+              { label: "Standard User", value: "USER" },
+            ],
+            onChange: (val) => {
+              setRoleFilter(val);
+              setPage(1);
+            },
+          },
+        ]}
+        onReset={handleResetFilters}
+      />
+
+      {/* Users Table */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[850px] text-left text-xs">
+            <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="px-6 py-3.5">User</th>
+                <th className="px-6 py-3.5">Platform Role</th>
+                <th className="px-6 py-3.5">Primary Workspace</th>
+                <th className="px-6 py-3.5">Workspace Role</th>
+                <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5">Registered</th>
+                <th className="px-6 py-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#88da1c] border-t-transparent" />
+                      <span>Loading user directory...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="mx-auto flex max-w-sm flex-col items-center justify-center gap-2 text-slate-500">
+                      <Users size={32} className="text-slate-300" />
+                      <span className="font-semibold text-slate-700">
+                        No platform users found
+                      </span>
+                      <p className="text-xs text-slate-400 text-center">
+                        No user matches your search term or selected role filter.
+                      </p>
+                      {(search || roleFilter !== "ALL") && (
+                        <button
+                          onClick={handleResetFilters}
+                          className="mt-2 inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                          Clear Filters
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                users.map((u) => (
+                  <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white font-bold shrink-0">
+                          {u.name.slice(0, 1)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 truncate">
+                            {u.name}
+                          </div>
+                          <div className="text-[11px] text-slate-500 truncate">
+                            {u.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <AdminStatusBadge
+                        status={u.platformRole}
+                        type="platformRole"
+                      />
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-800 truncate">
+                      {u.primaryWorkspaceName || (
+                        <span className="text-slate-400 italic">None (Platform Admin)</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {u.workspaceRole ? (
+                        <AdminStatusBadge
+                          status={u.workspaceRole}
+                          type="workspaceRole"
+                        />
+                      ) : (
+                        <span className="text-slate-400">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${u.isActive
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-rose-50 text-rose-700"
+                          }`}
+                      >
+                        {u.isActive ? "Active" : "Disabled"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-500 whitespace-nowrap">
+                      {new Date(u.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setSelectedUser(u)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+                        >
+                          <Eye size={12} />
+                          Inspect
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleActionClick(
+                              "Modify Platform Role",
+                              "PATCH /api/admin/users/:userId/role",
+                            )
+                          }
+                          className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 focus:outline-hidden focus:ring-2 focus:ring-amber-400"
+                        >
+                          Edit Role
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={total}
+          pageSize={10}
+          onPageChange={setPage}
+          source="LIVE_BACKEND"
+        />
+      </div>
+
+      {/* User Inspect Drawer */}
+      <AdminDetailDrawer
+        open={Boolean(selectedUser)}
+        onClose={() => setSelectedUser(null)}
+        title={selectedUser?.name || "User Details"}
+        subtitle={`User ID: ${selectedUser?.id}`}
+      >
+        {selectedUser && (
+          <div className="space-y-6 text-xs">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">
+                  Platform Role
+                </span>
+                <AdminStatusBadge
+                  status={selectedUser.platformRole}
+                  type="platformRole"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">
+                  Account Status
+                </span>
+                <span
+                  className={`font-semibold ${selectedUser.isActive ? "text-emerald-700" : "text-rose-700"
+                    }`}
+                >
+                  {selectedUser.isActive ? "Active Account" : "Inactive / Suspended"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">
+                  Email Verification
+                </span>
+                <span className="font-medium text-slate-700">
+                  {selectedUser.isEmailVerified ? "Verified Email" : "Unverified"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">
+                  Last Active
+                </span>
+                <span className="text-slate-900 font-medium">
+                  {selectedUser.lastLoginAt
+                    ? new Date(selectedUser.lastLoginAt).toLocaleString("en-US")
+                    : "No recorded activity"}
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 p-4 space-y-2">
+              <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
+                Customer Workspace Mapping
+              </h4>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Associated Workspace</span>
+                <span className="font-semibold text-slate-900">
+                  {selectedUser.primaryWorkspaceName || "None (Platform Admin)"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Workspace Role</span>
+                <span className="font-semibold text-slate-900">
+                  {selectedUser.workspaceRole || "N/A"}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Actions in Drawer */}
+            <div className="space-y-2 pt-2 border-t border-slate-200">
+              <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
+                Security Actions
+              </h4>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() =>
+                    handleActionClick(
+                      "Reset User Password",
+                      "POST /api/admin/users/:userId/password-reset",
+                    )
+                  }
+                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+                >
+                  Password Reset
+                </button>
+                <button
+                  onClick={() =>
+                    handleActionClick(
+                      "Revoke Active Sessions",
+                      "POST /api/admin/users/:userId/revoke-sessions",
+                    )
+                  }
+                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+                >
+                  Revoke Sessions
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-amber-900 text-[11px]">
+              <strong>Security Protocol:</strong> Elevation to SUPER_ADMIN or
+              FINANCE_ADMIN requires out-of-band CLI execution (
+              <code>npm run admin:bootstrap</code>) or an authoritative backend
+              admin endpoint. Client-side role modifications are strictly blocked.
+            </div>
+          </div>
+        )}
+      </AdminDetailDrawer>
+
+      <AdminUnimplementedModal
+        open={mutationModalOpen}
+        onClose={() => setMutationModalOpen(false)}
+        actionTitle={mutationActionTitle}
+        missingEndpoint={missingEndpoint}
+        explanation="The endpoint to mutate user roles or platform permissions does not exist in cyber7-backend. Fake role changes are disabled to protect access boundaries."
+      />
+    </div>
+  );
+}

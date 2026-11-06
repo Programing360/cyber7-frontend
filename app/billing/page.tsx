@@ -1,835 +1,611 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
-ArrowDownRight,
-ArrowUpRight,
-Check,
-ChevronDown,
-CreditCard,
-Download,
-FileText,
-Receipt,
-ShieldCheck,
-Sparkles,
-X,
+  AlertCircle,
+  ArrowRight,
+  ArrowUpRight,
+  Building2,
+  Calendar,
+  Check,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  Download,
+  FileText,
+  Loader2,
+  Receipt,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Smartphone,
+  X,
 } from "lucide-react";
-
 import DashboardLayout from "@/src/component/dashboard/dashboard-layout";
-import {
-billingPlans,
-currentSubscription,
-invoices,
-paymentMethod,
-usageStats,
-type BillingCycle,
-type Invoice,
-type InvoiceStatus,
-type PlanId,
-} from "@/src/data/mock/billing";
+import { useWorkspace } from "@/src/context/workspace-context";
+import { billingService } from "@/src/services/billing-service";
+import CheckoutModal from "@/src/component/billing/checkout-modal";
+import type {
+  BillingOverviewData,
+  BillingPlan,
+  InvoiceItem,
+  PaymentItem,
+  PlanCode,
+} from "@/src/types/billing";
 
-const BRAND_COLOR = "#88da1c";
-
-function formatCurrency(amount: number) {
-return new Intl.NumberFormat("en-US", {
-style: "currency",
-currency: currentSubscription.currency,
-maximumFractionDigits: 0,
-}).format(amount);
+function formatBdt(amount: number) {
+  return new Intl.NumberFormat("en-BD", {
+    style: "currency",
+    currency: "BDT",
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
-function formatDate(date: string) {
-return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
-month: "short",
-day: "numeric",
-year: "numeric",
-});
+function formatDate(dateStr: string) {
+  try {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
 }
 
-function getInvoiceStatusClass(status: InvoiceStatus) {
-switch (status) {
-case "Paid":
-return "bg-emerald-50 text-emerald-700";
-case "Pending":
-return "bg-amber-50 text-amber-700";
-case "Failed":
-return "bg-rose-50 text-rose-700";
-default:
-return "bg-slate-100 text-slate-600";
-}
-}
-
-function UsageCard({
-label,
-used,
-limit,
-}: {
-label: string;
-used: number;
-limit: number;
-}) {
-const percentage =
-limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
-
-const remaining = Math.max(limit - used, 0);
-
-return ( <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-[#88da1c]/50 hover:shadow-md"> <div className="flex items-start justify-between gap-3"> <div> <p className="text-sm font-medium text-slate-500">{label}</p>
-
-
-      <p className="mt-2 text-2xl font-bold text-slate-900">
-        {used.toLocaleString()}
-        <span className="ml-1 text-sm font-medium text-slate-400">
-          / {limit.toLocaleString()}
-        </span>
-      </p>
-    </div>
-
-    <div className="rounded-xl bg-[#88da1c]/15 p-2.5">
-      <Receipt size={19} className="text-green-800" />
-    </div>
-  </div>
-
-  <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-    <div
-      className={`h-full rounded-full transition-all ${
-        percentage >= 90 ? "bg-amber-500" : "bg-[#88da1c]"
-      }`}
-      style={{ width: `${percentage}%` }}
-    />
-  </div>
-
-  <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-    <span className="text-slate-500">
-      {percentage.toFixed(0)}% used
-    </span>
-
-    <span className="font-medium text-slate-700">
-      {remaining.toLocaleString()} remaining
-    </span>
-  </div>
-</div>
-
-
-);
-}
-
-function InvoiceRow({
-invoice,
-onDownload,
-}: {
-invoice: Invoice;
-onDownload: (invoice: Invoice) => void;
-}) {
-return ( <tr className="border-b border-slate-100 transition last:border-0 hover:bg-slate-50"> <td className="px-5 py-4"> <p className="font-semibold text-slate-900">{invoice.id}</p>
-
-
-    <p className="mt-1 text-xs text-slate-500">
-      {invoice.description}
-    </p>
-  </td>
-
-  <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
-    {formatDate(invoice.date)}
-  </td>
-
-  <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-slate-900">
-    {formatCurrency(invoice.amount)}
-  </td>
-
-  <td className="px-5 py-4">
-    <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getInvoiceStatusClass(
-        invoice.status,
-      )}`}
-    >
-      {invoice.status}
-    </span>
-  </td>
-
-  <td className="px-5 py-4 text-right">
-    <button
-      type="button"
-      onClick={() => onDownload(invoice)}
-      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-[#88da1c]/15 hover:text-slate-900"
-      aria-label={`Download invoice ${invoice.id}`}
-    >
-      <Download size={15} />
-      <span className="hidden sm:inline">Invoice</span>
-    </button>
-  </td>
-</tr>
-
-
-);
+function getInvoiceStatusBadge(status: string) {
+  switch (status.toUpperCase()) {
+    case "PAID":
+      return "bg-emerald-50 text-emerald-800 border-emerald-200";
+    case "PENDING":
+      return "bg-amber-50 text-amber-800 border-amber-200";
+    case "VOID":
+    case "FAILED":
+      return "bg-rose-50 text-rose-800 border-rose-200";
+    default:
+      return "bg-slate-100 text-slate-700 border-slate-200";
+  }
 }
 
 export default function BillingPage() {
-const [billingCycle, setBillingCycle] =
-useState<BillingCycle>("monthly");
+  const { activeWorkspace, isLoading: isWorkspaceLoading } = useWorkspace();
 
-const [selectedPlan, setSelectedPlan] = useState<PlanId>(
-currentSubscription.planId,
-);
+  const [overview, setOverview] = useState<BillingOverviewData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<BillingPlan | null>(null);
+  const [invoiceFilter, setInvoiceFilter] = useState<string>("ALL");
+  const [toastMessage, setToastMessage] = useState("");
 
-const [showCancelModal, setShowCancelModal] = useState(false);
-const [showPaymentDetails, setShowPaymentDetails] = useState(false);
-const [toast, setToast] = useState("");
+  const isOwnerOrAdmin =
+    activeWorkspace?.role === "OWNER" || activeWorkspace?.role === "ADMIN";
 
-const [invoiceFilter, setInvoiceFilter] = useState<
-"All" | InvoiceStatus
+  function showToast(msg: string) {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 3500);
+  }
 
-> ("All");
+  const loadBillingData = useCallback(async () => {
+    if (!activeWorkspace) return;
+    if (!isOwnerOrAdmin) {
+      // Backend enforces strict OWNER/ADMIN authorization on billing routes.
+      // Do not trigger unauthorized requests that produce 403 errors.
+      setIsLoading(false);
+      setErrorMessage("");
+      return;
+    }
+    setIsLoading(true);
+    setErrorMessage("");
+    try {
+      const data = await billingService.getOverview(activeWorkspace.id);
+      setOverview(data);
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to load billing details.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeWorkspace, isOwnerOrAdmin]);
 
-const activePlan = billingPlans.find(
-(plan) => plan.id === currentSubscription.planId,
-)!;
+  useEffect(() => {
+    if (!isWorkspaceLoading && activeWorkspace) {
+      loadBillingData();
+    } else if (!isWorkspaceLoading && !activeWorkspace) {
+      setIsLoading(false);
+    }
+  }, [activeWorkspace, isWorkspaceLoading, loadBillingData]);
 
-const selectedPlanData = billingPlans.find(
-(plan) => plan.id === selectedPlan,
-)!;
+  function handleDownloadInvoice(inv: InvoiceItem) {
+    const text = [
+      "==============================================",
+      "             VEXCHAT INVOICE RECEIPT          ",
+      "==============================================",
+      `Invoice Number : ${inv.invoiceNumber}`,
+      `Date           : ${formatDate(inv.createdAt)}`,
+      `Workspace      : ${inv.issuedTo.workspaceName}`,
+      `Customer       : ${inv.issuedTo.userName} (${inv.issuedTo.userEmail})`,
+      `Plan           : ${inv.planName} (${inv.planCode})`,
+      `Billing Cycle  : Monthly (Manual Renewal)`,
+      `Period Start   : ${formatDate(inv.periodCoveredStart)}`,
+      `Period End     : ${formatDate(inv.periodCoveredEnd)}`,
+      `Amount         : ${formatBdt(inv.amount)} BDT`,
+      `Payment Method : ${inv.paymentMethod}`,
+      `Payment Status : ${inv.status}`,
+      `Paid At        : ${inv.paidAt ? formatDate(inv.paidAt) : "N/A"}`,
+      "==============================================",
+      "Thank you for choosing VexChat for your WhatsApp SaaS.",
+    ].join("\n");
 
-const currentPrice =
-billingCycle === "monthly"
-? selectedPlanData.monthlyPrice
-: selectedPlanData.yearlyPrice;
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${inv.invoiceNumber}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Invoice ${inv.invoiceNumber} downloaded.`);
+  }
 
-const displayedInvoices =
-invoiceFilter === "All"
-? invoices
-: invoices.filter((invoice) => invoice.status === invoiceFilter);
+  const displayedInvoices = (overview?.recentInvoices || []).filter((inv) => {
+    if (invoiceFilter === "ALL") return true;
+    return inv.status.toUpperCase() === invoiceFilter;
+  });
 
-function showToast(message: string) {
-setToast(message);
-window.setTimeout(() => setToast(""), 3000);
-}
+  const activeSub = overview?.subscription;
+  const currentPlanCode = activeSub?.planCode || null;
 
-function handlePlanSelection(planId: PlanId) {
-setSelectedPlan(planId);
+  return (
+    <DashboardLayout>
+      <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl space-y-8">
+          {/* Header */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
+                <span>{activeWorkspace?.name || "Workspace"}</span>
+                <span>/</span>
+                <span className="font-medium text-slate-700">Billing & Subscription</span>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Subscription & Billing
+              </h1>
+              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-slate-500">
+                Manage your workspace plan, view authoritative BDT invoices, and initiate manual renewals.
+              </p>
+            </div>
 
+            {isOwnerOrAdmin && (
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById("pricing-plans")?.scrollIntoView({ behavior: "smooth" })
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#88da1c] px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-xs transition hover:bg-[#78c418]"
+              >
+                <Sparkles size={16} />
+                Explore Plans
+              </button>
+            )}
+          </div>
 
-const plan = billingPlans.find((item) => item.id === planId);
+          {/* Loading Skeleton */}
+          {isLoading ? (
+            <div className="space-y-6">
+              <div className="h-56 w-full animate-pulse rounded-2xl bg-slate-200" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="h-44 animate-pulse rounded-2xl bg-slate-200" />
+                <div className="h-44 animate-pulse rounded-2xl bg-slate-200" />
+                <div className="h-44 animate-pulse rounded-2xl bg-slate-200" />
+              </div>
+            </div>
+          ) : !isOwnerOrAdmin ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 sm:p-12 text-center max-w-xl mx-auto space-y-4 shadow-xs">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
+                <AlertCircle size={28} />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">
+                Billing Access Restricted
+              </h2>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                You are viewing this workspace as an <strong>Agent</strong>. Subscription overviews, plan upgrades,
+                and invoices are restricted to workspace <strong>Owners</strong> and <strong>Admins</strong>.
+              </p>
+              <p className="text-xs text-slate-500">
+                If your team requires additional message capacity or seats, please contact your workspace administrator.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/inbox"
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition"
+                >
+                  Return to Team Inbox
+                </Link>
+              </div>
+            </div>
+          ) : errorMessage ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+              <AlertCircle size={36} className="text-red-600 mb-3" />
+              <h3 className="text-base font-bold text-red-900">Unable to load billing data</h3>
+              <p className="mt-1 text-xs text-red-700 max-w-sm">{errorMessage}</p>
+              <button
+                type="button"
+                onClick={loadBillingData}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+              >
+                <RefreshCw size={14} /> Retry
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Current Subscription Hero Banner */}
+              <section className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#111827] via-[#1f2937] to-[#1d3513] p-6 sm:p-8 text-white shadow-lg lg:col-span-2">
+                  <div className="absolute -right-12 -top-12 h-56 w-56 rounded-full bg-[#88da1c]/10 blur-2xl" />
+                  <div className="relative">
+                    <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold">
+                            ACTIVE PLAN
+                          </span>
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-slate-300">
+                            <span
+                              className={`h-2 w-2 rounded-full ${overview?.isSubscriptionActive ? "bg-[#88da1c]" : "bg-amber-400"
+                                }`}
+                            />
+                            {activeSub ? activeSub.status : "NO ACTIVE PLAN"}
+                          </span>
+                          <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-medium text-slate-300">
+                            Manual Monthly
+                          </span>
+                        </div>
 
-if (planId === currentSubscription.planId) {
-  showToast(`You are already subscribed to the ${plan?.name} plan.`);
-  return;
-}
+                        <h2 className="mt-4 text-3xl font-extrabold tracking-tight">
+                          {activeSub ? `VexChat ${activeSub.planName}` : "Free Trial / Inactive"}
+                        </h2>
 
-showToast(
-  `${plan?.name} selected. This is a demo; no payment has been processed.`,
-);
+                        <p className="mt-1.5 max-w-md text-sm text-slate-300 leading-relaxed">
+                          {activeSub
+                            ? `Connected WhatsApp Business API capacity with ${activeSub.limits.maxWhatsAppNumbers} number(s) and ${activeSub.limits.maxTeamMembers} team seat(s).`
+                            : "Upgrade your workspace to connect WhatsApp Business numbers and send broadcast campaigns."}
+                        </p>
+                      </div>
 
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:min-w-40 text-left">
+                        <span className="text-xs text-slate-400">Monthly Plan Rate</span>
+                        <p className="mt-1 text-3xl font-bold">
+                          {activeSub ? formatBdt(activeSub.price) : "৳ 0"}
+                        </p>
+                        <span className="text-[11px] text-[#88da1c] font-medium">
+                          No auto-renewals
+                        </span>
+                      </div>
+                    </div>
 
-}
-
-function handleDownloadInvoice(invoice: Invoice) {
-const content = [
-"VexChat - Demo Invoice",
-"----------------------",
-`Invoice ID: ${invoice.id}`,
-`Date: ${invoice.date}`,
-`Description: ${invoice.description}`,
-`Amount: ${formatCurrency(invoice.amount)}`,
-`Status: ${invoice.status}`,
-`Payment method: ${invoice.paymentMethod}`,
-"",
-"DEMO ONLY - This is not a real payment receipt.",
-].join("\n");
-
-
-const blob = new Blob([content], {
-  type: "text/plain;charset=utf-8",
-});
-
-const url = URL.createObjectURL(blob);
-const link = document.createElement("a");
-
-link.href = url;
-link.download = `${invoice.id}.txt`;
-
-document.body.appendChild(link);
-link.click();
-link.remove();
-
-URL.revokeObjectURL(url);
-
-showToast("Demo invoice downloaded.");
-
-
-}
-
-function handleCancelSubscription() {
-setShowCancelModal(false);
-
-
-showToast(
-  "Demo only: cancellation was not processed. Your subscription is unchanged.",
-);
-
-
-}
-
-return ( <DashboardLayout> <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8"> <div className="mx-auto max-w-7xl space-y-8">
-{/* Page heading */} <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"> <div> <div className="mb-2 flex items-center gap-2 text-sm text-slate-500"> <span>Workspace</span> <span>/</span> <span className="font-medium text-slate-700">
-Subscription & Billing </span> </div>
-
-
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Subscription & Billing
-          </h1>
-
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Manage your plan, monitor usage, and review your billing
-            history.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            document
-              .getElementById("pricing-plans")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#88da1c] px-4 py-3 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-[#79c518] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#88da1c] focus-visible:ring-offset-2"
-        >
-          <Sparkles size={17} />
-          Explore plans
-        </button>
-      </div>
-
-      {/* Demo notice */}
-      <div className="flex gap-3 rounded-2xl border border-[#88da1c]/30 bg-[#88da1c]/10 p-4">
-        <ShieldCheck
-          size={20}
-          className="mt-0.5 shrink-0 text-green-800"
-        />
-
-        <div>
-          <p className="text-sm font-semibold text-slate-900">
-            Demo billing environment
-          </p>
-
-          <p className="mt-1 text-sm leading-6 text-slate-700">
-            Plan changes, payment information, and cancellation are
-            simulated. No real payment will be taken, and no
-            subscription will be changed.
-          </p>
-        </div>
-      </div>
-
-      {/* Current subscription */}
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#111827] via-[#1f2937] to-[#263b1c] p-6 text-white shadow-lg lg:col-span-2">
-          <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-[#88da1c]/10" />
-
-          <div className="absolute -bottom-20 right-28 h-52 w-52 rounded-full bg-white/5" />
-
-          <div className="relative">
-            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold">
-                    CURRENT PLAN
-                  </span>
-
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-slate-300">
-                    <span className="h-2 w-2 rounded-full bg-[#88da1c]" />
-                    {currentSubscription.status}
-                  </span>
+                    <div className="mt-8 grid grid-cols-1 gap-4 border-t border-white/10 pt-5 sm:grid-cols-3 text-xs">
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Period Started</span>
+                        <span className="font-semibold text-slate-100">
+                          {activeSub ? formatDate(activeSub.currentPeriodStart) : "—"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Expires On</span>
+                        <span className="font-semibold text-slate-100">
+                          {activeSub ? formatDate(activeSub.currentPeriodEnd) : "—"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Remaining Period</span>
+                        <span
+                          className={`font-semibold ${(overview?.daysRemaining || 0) <= 5 ? "text-amber-300" : "text-[#88da1c]"
+                            }`}
+                        >
+                          {overview?.daysRemaining ? `${overview.daysRemaining} day(s) left` : "Expired / Inactive"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <h2 className="mt-5 text-3xl font-bold">
-                  VexChat {activePlan.name}
-                </h2>
-
-                <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">
-                  {activePlan.description}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:min-w-36">
-                <p className="text-xs text-slate-300">Current price</p>
-
-                <p className="mt-1 text-3xl font-bold">
-                  {formatCurrency(currentSubscription.amount)}
-                </p>
-
-                <p className="mt-1 text-xs text-slate-300">
-                  per month
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 grid grid-cols-1 gap-4 border-t border-white/15 pt-5 sm:grid-cols-2">
-              <div>
-                <p className="text-xs text-slate-300">
-                  Subscription started
-                </p>
-
-                <p className="mt-1 font-semibold">
-                  {formatDate(currentSubscription.startDate)}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-300">
-                  Next billing date
-                </p>
-
-                <p className="mt-1 font-semibold">
-                  {formatDate(currentSubscription.nextBillingDate)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Payment method */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Payment method
-              </p>
-
-              <h3 className="mt-2 text-lg font-bold text-slate-900">
-                {paymentMethod.brand} ending in {paymentMethod.lastFour}
-              </h3>
-            </div>
-
-            <div className="rounded-xl bg-[#88da1c]/15 p-3">
-              <CreditCard size={21} className="text-green-800" />
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-xl border border-slate-200 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500">Card expiry</span>
-
-              <span className="text-sm font-semibold text-slate-800">
-                {paymentMethod.expiry}
-              </span>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-xs text-slate-500">Status</span>
-
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                {paymentMethod.isDefault ? "Default" : "Saved"}
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowPaymentDetails((value) => !value)}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#88da1c] hover:bg-[#88da1c]/5"
-          >
-            {showPaymentDetails
-              ? "Hide details"
-              : "Manage payment method"}
-
-            <ChevronDown
-              size={16}
-              className={`transition-transform ${
-                showPaymentDetails ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {showPaymentDetails && (
-            <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-600">
-              Payment method management is a demo feature. Connect a
-              payment provider to securely manage real payment methods.
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Usage overview */}
-      <section>
-        <div className="mb-4">
-          <h2 className="text-xl font-bold text-slate-900">
-            Usage overview
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Monitor how much of your current plan you have used.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {Object.values(usageStats).map((item) => (
-            <UsageCard
-              key={item.label}
-              label={item.label}
-              used={item.used}
-              limit={item.limit}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Pricing plans */}
-      <section id="pricing-plans" className="scroll-mt-8">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">
-              Choose the right plan
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Compare plans and explore what works best for your
-              business.
-            </p>
-          </div>
-
-          <div className="inline-flex w-fit items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
-            <button
-              type="button"
-              onClick={() => setBillingCycle("monthly")}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                billingCycle === "monthly"
-                  ? "bg-[#88da1c] text-slate-950 shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              Monthly
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setBillingCycle("yearly")}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                billingCycle === "yearly"
-                  ? "bg-[#88da1c] text-slate-950 shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              Yearly
-
-              <span
-                className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-                  billingCycle === "yearly"
-                    ? "bg-black/10 text-slate-900"
-                    : "bg-emerald-50 text-emerald-700"
-                }`}
-              >
-                SAVE
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {billingPlans.map((plan) => {
-            const price =
-              billingCycle === "monthly"
-                ? plan.monthlyPrice
-                : plan.yearlyPrice;
-
-            const isCurrent = plan.id === currentSubscription.planId;
-            const isSelected = plan.id === selectedPlan;
-
-            return (
-              <div
-                key={plan.id}
-                className={`relative flex flex-col rounded-2xl border bg-white p-6 transition ${
-                  plan.recommended
-                    ? "border-[#88da1c] shadow-lg shadow-[#88da1c]/10"
-                    : "border-slate-200 shadow-sm"
-                } ${
-                  isSelected
-                    ? "ring-1 ring-[#88da1c]"
-                    : ""
-                }`}
-              >
-                {plan.recommended && (
-                  <div className="absolute -top-3 left-6 rounded-full bg-[#88da1c] px-3 py-1 text-xs font-semibold text-slate-950">
-                    Most popular
-                  </div>
-                )}
-
-                <div className="flex items-start justify-between gap-3">
+                {/* Approved Payment Methods Sidecard */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">
-                      {plan.name}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Payment Methods
+                      </span>
+                      <ShieldCheck size={18} className="text-emerald-600" />
+                    </div>
+                    <h3 className="mt-2 text-lg font-bold text-slate-900">
+                      Approved Local Gateways
                     </h3>
+                    <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                      We support three secure methods for manual monthly renewals:
+                    </p>
 
-                    <p className="mt-1 text-sm leading-5 text-slate-500">
-                      {plan.description}
+                    <div className="mt-4 space-y-2.5">
+                      <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-100 text-[#E2136E]">
+                          <Smartphone size={16} />
+                        </div>
+                        <div className="text-xs">
+                          <p className="font-bold text-slate-900">bKash Checkout</p>
+                          <p className="text-slate-500">Instant OTP & PIN verification</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                          <CreditCard size={16} />
+                        </div>
+                        <div className="text-xs">
+                          <p className="font-bold text-slate-900">City Bank Cards</p>
+                          <p className="text-slate-500">Visa, Mastercard, Amex 3DS</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+                          <Building2 size={16} />
+                        </div>
+                        <div className="text-xs">
+                          <p className="font-bold text-slate-900">City Bank Account</p>
+                          <p className="text-slate-500">Direct deposit & manual review</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-emerald-200/60 bg-emerald-50/50 p-3 text-[11px] text-emerald-900">
+                    <p className="font-semibold mb-0.5">Zero Recurring Traps</p>
+                    <p>You are never charged automatically. Each renewal is initiated by you.</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Pricing Catalog Section */}
+              <section id="pricing-plans" className="scroll-mt-6 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+                      Choose or Renew Your Plan
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Authoritative BDT pricing. Early renewals extend your expiry without losing remaining days.
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-slate-200/70 px-3.5 py-1 text-xs font-semibold text-slate-700 w-fit">
+                    Monthly Billing Only
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                  {(overview?.plans || []).map((plan) => {
+                    const isCurrent = plan.code === currentPlanCode;
+                    const isPopular = plan.code === "BUSINESS_PRO";
+
+                    return (
+                      <div
+                        key={plan.code}
+                        className={`relative flex flex-col rounded-3xl border bg-white p-6 sm:p-7 transition-all ${isPopular
+                            ? "border-[#88da1c] shadow-lg shadow-[#88da1c]/10 ring-1 ring-[#88da1c]/30"
+                            : "border-slate-200 shadow-xs hover:border-slate-300"
+                          }`}
+                      >
+                        {isPopular && (
+                          <div className="absolute -top-3 left-6 rounded-full bg-[#88da1c] px-3.5 py-0.5 text-xs font-bold text-slate-950">
+                            Most Popular
+                          </div>
+                        )}
+
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-lg font-bold text-slate-900">
+                              {plan.name}
+                            </h3>
+                            <p className="mt-1 text-xs text-slate-500 leading-relaxed min-h-[36px]">
+                              {plan.description}
+                            </p>
+                          </div>
+                          {isCurrent && (
+                            <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200">
+                              Current
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-6 flex items-baseline gap-1">
+                          <span className="text-4xl font-extrabold tracking-tight text-slate-900">
+                            {formatBdt(plan.priceBdt)}
+                          </span>
+                          <span className="text-xs font-medium text-slate-500">
+                            / month
+                          </span>
+                        </div>
+
+                        <div className="my-6 h-px bg-slate-100" />
+
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                          Included Features & Limits
+                        </p>
+
+                        <ul className="flex-1 space-y-2.5 text-xs text-slate-600">
+                          {plan.features.map((feature) => (
+                            <li key={feature} className="flex items-start gap-2.5">
+                              <Check
+                                size={14}
+                                className="mt-0.5 shrink-0 text-emerald-600"
+                              />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <div className="mt-8 pt-4 border-t border-slate-100">
+                          {isOwnerOrAdmin ? (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPlanForCheckout(plan)}
+                              className={`w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${isCurrent
+                                  ? "bg-slate-900 text-white hover:bg-slate-800"
+                                  : isPopular
+                                    ? "bg-[#88da1c] text-slate-950 hover:bg-[#79c518] shadow-xs"
+                                    : "border border-slate-200 text-slate-800 hover:border-slate-300 hover:bg-slate-50"
+                                }`}
+                            >
+                              {isCurrent ? "Renew Current Plan" : "Select & Upgrade"}
+                              <ArrowRight size={15} />
+                            </button>
+                          ) : (
+                            <div className="text-center py-2.5 text-xs text-slate-400 font-medium">
+                              Admin authorization required
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Invoices Table Section */}
+              <section className="pt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Invoices & Payment History
+                    </h2>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Official records generated on verified payment completion.
                     </p>
                   </div>
 
-                  {isCurrent && (
-                    <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                      Current
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">Filter:</span>
+                    <select
+                      value={invoiceFilter}
+                      onChange={(e) => setInvoiceFilter(e.target.value)}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-emerald-500"
+                    >
+                      <option value="ALL">All Invoices</option>
+                      <option value="PAID">Paid</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="VOID">Void / Refunded</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[700px] text-left">
+                      <thead className="border-b border-slate-100 bg-slate-50/70 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <tr>
+                          <th className="px-6 py-4">Invoice #</th>
+                          <th className="px-6 py-4">Date</th>
+                          <th className="px-6 py-4">Plan & Coverage</th>
+                          <th className="px-6 py-4">Amount</th>
+                          <th className="px-6 py-4">Gateway</th>
+                          <th className="px-6 py-4">Status</th>
+                          <th className="px-6 py-4 text-right">Receipt</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {displayedInvoices.map((inv) => (
+                          <tr key={inv._id} className="hover:bg-slate-50/50 transition">
+                            <td className="px-6 py-4 font-mono font-bold text-slate-900">
+                              {inv.invoiceNumber}
+                            </td>
+                            <td className="px-6 py-4 text-slate-600">
+                              {formatDate(inv.createdAt)}
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="font-semibold text-slate-800">{inv.planName}</p>
+                              <p className="text-[11px] text-slate-400">
+                                {formatDate(inv.periodCoveredStart)} – {formatDate(inv.periodCoveredEnd)}
+                              </p>
+                            </td>
+                            <td className="px-6 py-4 font-bold text-slate-900">
+                              {formatBdt(inv.amount)}
+                            </td>
+                            <td className="px-6 py-4 text-slate-600 font-medium">
+                              {inv.paymentMethod}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${getInvoiceStatusBadge(
+                                  inv.status,
+                                )}`}
+                              >
+                                {inv.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadInvoice(inv)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
+                              >
+                                <Download size={13} />
+                                Receipt
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {displayedInvoices.length === 0 && (
+                    <div className="py-12 text-center">
+                      <FileText size={32} className="mx-auto text-slate-300" />
+                      <p className="mt-3 font-semibold text-slate-800 text-sm">
+                        No invoices match this filter
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Invoices are issued automatically upon verified payment completion.
+                      </p>
+                    </div>
                   )}
                 </div>
-
-                <div className="mt-6 flex items-end gap-1">
-                  <span className="text-4xl font-bold tracking-tight text-slate-900">
-                    {formatCurrency(price)}
-                  </span>
-
-                  <span className="pb-1 text-sm text-slate-500">
-                    / {billingCycle === "monthly" ? "month" : "year"}
-                  </span>
-                </div>
-
-                {billingCycle === "yearly" && price > 0 && (
-                  <p className="mt-2 text-xs text-emerald-700">
-                    Equivalent to {formatCurrency(price / 12)} per month
-                  </p>
-                )}
-
-                <div className="my-6 h-px bg-slate-200" />
-
-                <p className="mb-4 text-sm font-semibold text-slate-800">
-                  What&apos;s included
-                </p>
-
-                <ul className="flex-1 space-y-3">
-                  {plan.features.map((feature) => (
-                    <li
-                      key={feature}
-                      className="flex items-start gap-2.5 text-sm text-slate-600"
-                    >
-                      <span className="mt-0.5 rounded-full bg-[#88da1c]/15 p-0.5">
-                        <Check size={13} className="text-green-800" />
-                      </span>
-
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-7">
-                  <button
-                    type="button"
-                    onClick={() => handlePlanSelection(plan.id)}
-                    disabled={isCurrent}
-                    className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#88da1c] focus-visible:ring-offset-2 ${
-                      isCurrent
-                        ? "cursor-not-allowed border border-slate-200 bg-slate-50 text-slate-400"
-                        : plan.recommended
-                          ? "bg-[#88da1c] text-slate-950 hover:bg-[#79c518]"
-                          : "border border-slate-200 text-slate-800 hover:border-[#88da1c] hover:bg-[#88da1c]/5"
-                    }`}
-                  >
-                    {isCurrent
-                      ? "Current plan"
-                      : plan.monthlyPrice > activePlan.monthlyPrice
-                        ? "Upgrade plan"
-                        : "Select plan"}
-
-                    {!isCurrent && <ArrowUpRight size={16} />}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Billing history */}
-      <section>
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">
-              Billing history
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Review your previous invoices and payment statuses.
-            </p>
-          </div>
-
-          <label className="flex items-center gap-2">
-            <span className="text-sm text-slate-500">Status:</span>
-
-            <select
-              value={invoiceFilter}
-              onChange={(event) =>
-                setInvoiceFilter(
-                  event.target.value as "All" | InvoiceStatus,
-                )
-              }
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20"
-            >
-              <option value="All">All invoices</option>
-              <option value="Paid">Paid</option>
-              <option value="Pending">Pending</option>
-              <option value="Failed">Failed</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left">
-              <thead className="border-b border-slate-200 bg-slate-50">
-                <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-5 py-4">Invoice</th>
-                  <th className="px-5 py-4">Date</th>
-                  <th className="px-5 py-4">Amount</th>
-                  <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4 text-right">Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {displayedInvoices.map((invoice) => (
-                  <InvoiceRow
-                    key={invoice.id}
-                    invoice={invoice}
-                    onDownload={handleDownloadInvoice}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {displayedInvoices.length === 0 && (
-            <div className="px-5 py-12 text-center">
-              <FileText size={30} className="mx-auto text-slate-300" />
-
-              <p className="mt-3 font-semibold text-slate-800">
-                No invoices found
-              </p>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Try selecting another status filter.
-              </p>
-            </div>
+              </section>
+            </>
           )}
-
-          <div className="flex flex-col gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-            <span>
-              Showing {displayedInvoices.length} demo invoice
-              {displayedInvoices.length === 1 ? "" : "s"}
-            </span>
-
-            <span>Invoice downloads are sample text files only.</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Cancellation */}
-      <section className="flex flex-col justify-between gap-4 rounded-2xl border border-rose-200 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
-        <div>
-          <h2 className="font-bold text-slate-900">
-            Cancel subscription
-          </h2>
-
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-            The demo cancellation flow shows a confirmation step. It will
-            not change your actual plan or process a payment.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setShowCancelModal(true)}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
-        >
-          Cancel subscription
-          <ArrowDownRight size={16} />
-        </button>
-      </section>
-    </div>
-  </div>
-
-  {/* Cancel confirmation modal */}
-  {showCancelModal && (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          setShowCancelModal(false);
-        }
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="cancel-modal-title"
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50">
-            <X size={22} className="text-rose-600" />
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowCancelModal(false)}
-            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100"
-            aria-label="Close cancellation dialog"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <h3
-          id="cancel-modal-title"
-          className="mt-5 text-xl font-bold text-slate-900"
-        >
-          Cancel your subscription?
-        </h3>
-
-        <p className="mt-2 text-sm leading-6 text-slate-500">
-          You are currently on the VexChat {activePlan.name} plan. This
-          demo will not cancel your real subscription or change your
-          billing status.
-        </p>
-
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={() => setShowCancelModal(false)}
-            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Keep subscription
-          </button>
-
-          <button
-            type="button"
-            onClick={handleCancelSubscription}
-            className="rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-700"
-          >
-            Confirm demo action
-          </button>
         </div>
       </div>
-    </div>
-  )}
 
-  {/* Toast */}
-  {toast && (
-    <div
-      role="status"
-      className="fixed bottom-5 right-5 z-[60] flex max-w-sm items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xl"
-    >
-      <div className="mt-0.5 rounded-full bg-[#88da1c]/15 p-1">
-        <Check size={15} className="text-green-800" />
-      </div>
+      {/* Checkout Modal */}
+      {selectedPlanForCheckout && activeWorkspace && (
+        <CheckoutModal
+          open={!!selectedPlanForCheckout}
+          onClose={() => setSelectedPlanForCheckout(null)}
+          plan={selectedPlanForCheckout}
+          workspaceId={activeWorkspace.id}
+          onPaymentSuccess={() => {
+            loadBillingData();
+          }}
+        />
+      )}
 
-      <p className="flex-1 text-sm leading-5 text-slate-700">{toast}</p>
-
-      <button
-        type="button"
-        onClick={() => setToast("")}
-        className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100"
-        aria-label="Dismiss notification"
-      >
-        <X size={15} />
-      </button>
-    </div>
-  )}
-</DashboardLayout>
-
-
-);
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          role="status"
+          className="fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xl text-xs text-slate-800"
+        >
+          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+          <p>{toastMessage}</p>
+          <button
+            type="button"
+            onClick={() => setToastMessage("")}
+            className="text-slate-400 hover:text-slate-600"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+    </DashboardLayout>
+  );
 }

@@ -30,6 +30,8 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
+  console.log(login);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
@@ -174,7 +176,7 @@ export default function LoginPage() {
 
             <Link
               href="/"
-              className="ml-auto inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+              className="ml-auto inline-flex items-center gap-2 rounded-xl shadow-lg shadow-slate-300 border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
               aria-label="Back to home"
             >
               <ArrowLeft size={14} />
@@ -183,7 +185,7 @@ export default function LoginPage() {
           </div>
 
           {/* Main Form Container */}
-          <div className="mx-auto w-full max-w-md my-auto py-8 shadow-2xl p-10 rounded-4xl shadow-[#0f172b]">
+          <div className="mx-auto w-full max-w-md my-auto py-8 shadow-2xl p-10 rounded-4xl shadow-[#1c2c52]">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-100">
               <ShieldCheck size={14} />
               Secure Enterprise Login
@@ -317,7 +319,7 @@ export default function LoginPage() {
 
             {/* Register Link */}
             <div className="mt-8 text-center text-sm text-slate-600">
-              Don&apos;t have an account?{" "}
+              Don't have an account?{" "}
               <Link
                 href="/register"
                 className="font-semibold text-emerald-600 hover:text-emerald-700 hover:underline"

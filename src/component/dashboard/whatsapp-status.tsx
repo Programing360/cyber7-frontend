@@ -10,7 +10,10 @@ import {
   MessageCircle,
   Webhook,
 } from "lucide-react";
-import type { DashboardWhatsAppStats, WhatsAppConfigStatus } from "@/src/types/api";
+import type {
+  DashboardWhatsAppStats,
+  WhatsAppConfigStatus,
+} from "@/src/types/api";
 import { whatsappService } from "@/src/services/whatsapp-service";
 import {
   deriveWhatsAppStatus,
@@ -86,7 +89,7 @@ export default function WhatsAppStatus({
   );
 
   const status = deriveWhatsAppStatus(configStatus, whatsapp);
-  // console.log(status);
+  console.log(status, configStatus);
   const {
     hasConfigData,
     metaAppConfigured: isMetaAppConfigured,

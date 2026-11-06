@@ -12,6 +12,7 @@ import {
   MessageCircle,
   MoreVertical,
   Paperclip,
+  Phone,
   Send,
   Smile,
   X,
@@ -43,6 +44,8 @@ interface ChatWindowProps {
   onDismissError: () => void;
   onBack?: () => void;
   workspaceId?: string;
+  /** Optional callback to initiate a WhatsApp call to this contact. */
+  onStartCall?: (name: string, phone: string) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -108,6 +111,7 @@ export default function ChatWindow({
   onDismissError,
   onBack,
   workspaceId,
+  onStartCall,
 }: ChatWindowProps) {
   const [text, setText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -269,12 +273,12 @@ export default function ChatWindow({
       ? "Conversation is closed — reopen to send messages"
       : !isServiceWindowActive
         ? "24-hour service window expired — send an approved template"
-        : "Type a message… (Enter to send, Shift+Enter for new line)";
+        : "Type a message… ";
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-[#f8fafc]">
       {/* Chat header */}
-      <header className="flex h-[76px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-5">
+      <header className="flex h-[76px] shrink-0 shadow-md items-center justify-between  border-slate-200 bg-white px-4 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
           {onBack && (
             <button
@@ -308,15 +312,15 @@ export default function ChatWindow({
           )}
 
           {/* 24-hour service window badge */}
-          {!isOptedOut && isServiceWindowActive && (
+          {/* {!isOptedOut && isServiceWindowActive && (
             <span
-              className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-900 px-2.5 py-1 text-[10px] font-bold text-white border border-emerald-200"
+              className="hidden sm:inline-flex items-center gap-1 shadow-xl rounded-full bg-emerald-900 px-2.5 py-1 text-[10px] font-bold text-white border "
               title="24-hour customer service window is open. Free-form messaging available."
             >
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-800 animate-pulse" />
               24h Window Active
             </span>
-          )}
+          )} */}
 
           {!isOptedOut && !isServiceWindowActive && (
             <span
@@ -340,11 +344,24 @@ export default function ChatWindow({
             <button
               type="button"
               onClick={() => setIsTemplateModalOpen(true)}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition"
+              className="rounded-2xl shadow-md shadow-gray-400  bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5  transition"
               title="Send an approved WhatsApp template"
             >
               <FileText size={14} className="text-slate-500" />
               <span className="hidden md:inline">Templates</span>
+            </button>
+          )}
+
+          {/* Call button — visible only when a phone number is available */}
+          {onStartCall && phone && (
+            <button
+              type="button"
+              aria-label={`Start WhatsApp call with ${contactName}`}
+              title="Start WhatsApp call"
+              onClick={() => onStartCall(contactName, phone)}
+              className="rounded-lg p-2 text-slate-500 hover:bg-green-50 hover:text-green-600 transition-colors"
+            >
+              <Phone size={19} />
             </button>
           )}
 
@@ -408,7 +425,7 @@ export default function ChatWindow({
           ) : (
             <>
               <div className="mb-6 flex justify-center">
-                <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] text-slate-500 shadow-sm">
+                <span className="rounded-lg shadow-lg shadow-blue-200 border-slate-200 bg-white px-3 py-1.5 text-[10px] text-slate-500">
                   Message history
                 </span>
               </div>
@@ -423,11 +440,10 @@ export default function ChatWindow({
                       className={`flex ${outgoing ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm sm:max-w-[75%] ${
-                          outgoing
-                            ? "rounded-br-md bg-green-600 text-white"
-                            : "rounded-bl-md border border-slate-200 bg-white text-slate-800"
-                        }`}
+                        className={`max-w-[85%] flex gap-4 rounded-2xl px-4 py-3 shadow-lg shadow-slate-700 sm:max-w-[75%] ${outgoing
+                          ? "rounded-br-md bg-green-900  text-white"
+                          : "rounded-bl-md  border-slate-200 bg-white text-slate-800"
+                          }`}
                       >
                         {msg.type === "TEMPLATE" ? (
                           <div>
@@ -450,9 +466,8 @@ export default function ChatWindow({
                         )}
 
                         <div
-                          className={`mt-2 flex items-center justify-end gap-1 text-[10px] ${
-                            outgoing ? "text-green-100" : "text-slate-400"
-                          }`}
+                          className={`mt-2 flex items-center justify-end gap-1 text-[10px] ${outgoing ? "text-green-100" : "text-slate-400"
+                            }`}
                         >
                           <span>{formatMessageTime(msg.timestamp)}</span>
                           {outgoing && <StatusIcon status={msg.status} />}
@@ -524,11 +539,10 @@ export default function ChatWindow({
           )}
 
           <div
-            className={`flex items-end gap-2 rounded-2xl border bg-slate-50 p-2 transition ${
-              isClosed || isOptedOut || !isServiceWindowActive
-                ? "border-slate-200 opacity-60"
-                : "border-slate-200 focus-within:border-green-400"
-            }`}
+            className={`flex items-end gap-2 rounded-4xl shadow-md bg-slate-50 p-2 transition ${isClosed || isOptedOut || !isServiceWindowActive
+              ? "border-slate-200 opacity-60"
+              : "border-slate-200 focus-within:border-green-400"
+              }`}
           >
             {/* Attachment button */}
             <button
@@ -560,7 +574,7 @@ export default function ChatWindow({
               type="button"
               aria-label="Emoji picker (not available yet)"
               disabled
-              className="hidden rounded-lg p-2 text-slate-300 sm:block"
+              className="hidden rounded-lg p-2  text-slate-300 sm:block"
             >
               <Smile size={19} />
             </button>

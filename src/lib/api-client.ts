@@ -166,7 +166,13 @@ class ApiClient {
     }
 
     // Attach Bearer token if not explicitly skipped
-    if (!skipAuth) {
+    // Customer JWT Isolation Guard:
+    // Customer access tokens must NEVER be attached to /admin/* or /api/admin/* endpoints.
+    // Platform administration requires dedicated AdminSession authentication (Phase 02B.4/5).
+    const isAdminEndpoint = /(?:^|\/)admin(?:\/|$)/i.test(endpoint);
+    if (isAdminEndpoint) {
+      headers.delete("Authorization");
+    } else if (!skipAuth) {
       let token = explicitToken;
       if (token === undefined) {
         token = await this.tokenGetter();

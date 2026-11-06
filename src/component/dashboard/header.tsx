@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/src/context/auth-context";
 import { useWorkspace } from "@/src/context/workspace-context";
+import Link from "next/link";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -24,14 +25,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const { user, logout } = useAuth();
-  const {
-    workspaces,
-    activeWorkspace,
-    switchWorkspace,
-    setCreateModalOpen,
-  } = useWorkspace();
-
-  const userInitial = user?.name ? user.name.trim().charAt(0).toUpperCase() : "A";
+  const { workspaces, activeWorkspace, switchWorkspace, setCreateModalOpen } =
+    useWorkspace();
+  // console.log(user);
+  const userInitial = user?.name
+    ? user.name.trim().charAt(0).toUpperCase()
+    : "A";
   const userName = user?.name || "Admin User";
   const userEmail = user?.email || "No email available";
   const userRole =
@@ -100,11 +99,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
                             }
                           }
                         }}
-                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition ${
-                          isSelected
-                            ? "bg-green-50 font-semibold text-green-800"
-                            : "text-slate-700 hover:bg-slate-50"
-                        }`}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition ${isSelected
+                          ? "bg-green-50 font-semibold text-green-800"
+                          : "text-slate-700 hover:bg-slate-50"
+                          }`}
                       >
                         <div className="min-w-0 flex-1 pr-2">
                           <p className="truncate">{ws.name}</p>
@@ -113,7 +111,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
                           </span>
                         </div>
                         {isSelected && (
-                          <Check size={14} className="shrink-0 text-green-600" />
+                          <Check
+                            size={14}
+                            className="shrink-0 text-green-600"
+                          />
                         )}
                       </button>
                     );
@@ -210,9 +211,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
             <div className="hidden text-left sm:block">
               <p className="text-xs font-semibold text-slate-800">{userName}</p>
-              <p className="mt-0.5 text-[11px] text-slate-400">
-                {userRole}
-              </p>
+              <p className="mt-0.5 text-[11px] text-slate-400">{userRole}</p>
             </div>
 
             <ChevronDown size={15} className="hidden text-slate-400 sm:block" />
@@ -227,14 +226,28 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 <p className="mt-1 text-xs text-slate-500">{userEmail}</p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setProfileOpen(false)}
-                className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
-              >
-                <UserRound size={17} />
-                My Profile
-              </button>
+              <Link href={'/my-profile'}>
+                <button
+                  type="button"
+                  // onClick={() => setProfileOpen(false)}
+                  className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+                >
+                  <UserRound size={17} />
+                  My Profile
+                </button>
+              </Link>
+              {user?.role === "ADMIN" && (
+                <Link href="/admin">
+                  <button
+                    type="button"
+                    // onClick={() => setProfileOpen(false)}
+                    className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+                  >
+                    <UserRound size={17} />
+                    Admin Dashboard
+                  </button>
+                </Link>
+              )}
 
               <button
                 type="button"
