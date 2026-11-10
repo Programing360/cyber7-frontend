@@ -13,7 +13,7 @@ export type WorkspaceRole = "OWNER" | "ADMIN" | "AGENT";
 export type WorkspaceStatus = "ACTIVE" | "SUSPENDED";
 
 // --- Plan Codes (from billing.config.ts) ---
-export type PlanCode = "STARTER" | "BUSINESS_PRO" | "ENTERPRISE";
+export type PlanCode = "STARTER" | "BUSINESS_PRO" | "ENTERPRISE" | (string & {});
 
 // --- Subscription Statuses ---
 export type SubscriptionStatus = "ACTIVE" | "EXPIRED" | "CANCELLED";
@@ -104,6 +104,48 @@ export interface AdminSubscription {
   };
   features: string[];
   createdAt: string;
+}
+
+/**
+ * Platform Admin Authoritative Plan Definition
+ */
+export interface AdminPlan {
+  code: string;
+  name: string;
+  priceBdt: number;
+  description: string;
+  limits: {
+    maxWhatsAppNumbers: number;
+    maxTeamMembers: number;
+  };
+  features: string[];
+  isCustom?: boolean;
+  activeSubscriptionsCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateCustomPlanInput {
+  planCode: string;
+  name: string;
+  priceBdt: number;
+  description?: string;
+  limits: {
+    maxWhatsAppNumbers: number;
+    maxTeamMembers: number;
+  };
+  features?: string[];
+}
+
+export interface UpdatePlanInput {
+  name?: string;
+  priceBdt?: number;
+  description?: string;
+  limits?: {
+    maxWhatsAppNumbers?: number;
+    maxTeamMembers?: number;
+  };
+  features?: string[];
 }
 
 /**
@@ -198,6 +240,24 @@ export interface AdminPlatformOverviewMetrics {
 /**
  * Platform Support Ticket (Mocked / Unimplemented Backend Feature)
  */
+/**
+ * Platform Support Ticket Message & Ticket Models
+ */
+export interface AdminSupportMessageAttachment {
+  filename: string;
+  url: string;
+}
+
+export interface AdminSupportMessage {
+  id?: string;
+  senderId: string;
+  senderRole: "CUSTOMER" | "PLATFORM_ADMIN" | "AGENT";
+  senderName?: string;
+  content: string;
+  attachments?: AdminSupportMessageAttachment[];
+  createdAt: string;
+}
+
 export interface AdminSupportTicket {
   id: string;
   ticketNumber: string;
@@ -208,9 +268,109 @@ export interface AdminSupportTicket {
   subject: string;
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
-  assignedAdmin?: string;
+  assignedAdmin?: string | null;
+  assignedAdminId?: string | null;
+  messages?: AdminSupportMessage[];
   createdAt: string;
   updatedAt: string;
-  backendSupport: "NOT_IMPLEMENTED";
+  backendSupport?: BackendSupportStatus;
+}
+
+export interface PlatformRuntimeDiagnostics {
+  nodeVersion: string;
+  environment: string;
+  uptimeSeconds: number;
+  serverTime: string;
+  mongoConnected: boolean;
+  activeSessionsCount: number;
+  expiredSessionsCount: number;
+}
+
+export interface AdminPlatformSettings {
+  currency: string;
+  maintenanceMode?: boolean;
+  sessionPolicies: {
+    idleTimeoutMinutes: number;
+    absoluteLifetimeHours: number;
+    highValueStepUpThresholdBdt: number;
+  };
+  gatewayToggles: {
+    bkashDirect: boolean;
+    cityBankTransfer: boolean;
+    portPosCards: boolean;
+  };
+  runtime?: PlatformRuntimeDiagnostics;
+  updatedBy?: string | null;
+  updatedAt?: string;
+}
+
+export interface GatewayHealthResult {
+  status: "HEALTHY" | "DEGRADED" | "DOWN";
+  latencyMs: number;
+  message: string;
+  mode: string;
+}
+
+export interface GatewaysHealthReport {
+  success: boolean;
+  timestamp: string;
+  overallStatus: "HEALTHY" | "DEGRADED" | "DOWN";
+  gateways: {
+    bkash: GatewayHealthResult;
+    cityBank: GatewayHealthResult;
+  };
+}
+
+/**
+ * Platform Admin Comprehensive Analytics
+ */
+export interface AdminAnalyticsOverview {
+  totalRevenueBdt: number;
+  monthlyRecurringRevenueBdt: number;
+  totalActiveSubscriptions: number;
+  averageRevenuePerAccount: number;
+  totalUsers: number;
+  trialUsers: number;
+  paidUsers: number;
+  totalWorkspaces: number;
+  activeWorkspaces: number;
+}
+
+export interface AdminAnalyticsRevenueTrendItem {
+  month: string;
+  revenue: number;
+  count: number;
+}
+
+export interface AdminAnalyticsPlanItem {
+  planCode: string;
+  name: string;
+  value: number;
+  revenueBdt: number;
+  color: string;
+}
+
+export interface AdminAnalyticsPaymentMethodItem {
+  method: string;
+  label: string;
+  amount: number;
+  count: number;
+}
+
+export interface AdminAnalyticsGrowthItem {
+  month: string;
+  users: number;
+  workspaces: number;
+  revenue: number;
+  transactions: number;
+}
+
+export interface AdminAnalyticsData {
+  overview: AdminAnalyticsOverview;
+  revenueTrend: AdminAnalyticsRevenueTrendItem[];
+  planDistribution: AdminAnalyticsPlanItem[];
+  paymentMethods: AdminAnalyticsPaymentMethodItem[];
+  growthTrend: AdminAnalyticsGrowthItem[];
+  source: "LIVE_BACKEND";
 }
 

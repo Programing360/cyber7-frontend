@@ -5,7 +5,7 @@ function getBackendBaseUrl(): string {
   const envUrl =
     process.env.INTERNAL_API_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
-    process.env.BACKEND_API_URL;
+    process.env.NEXT_PUBLIC_API_URL;
 
   if (!envUrl) return "http://localhost:5000";
   return envUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
@@ -104,6 +104,10 @@ async function proxyDashboardRequest(
       "content-type",
       backendRes.headers.get("content-type") || "application/json",
     );
+    const contentDisposition = backendRes.headers.get("content-disposition");
+    if (contentDisposition) {
+      clientResponse.headers.set("content-disposition", contentDisposition);
+    }
     clientResponse.headers.set("cache-control", "no-store");
 
     return clientResponse;

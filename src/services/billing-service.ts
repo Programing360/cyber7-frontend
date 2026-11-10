@@ -12,6 +12,7 @@ import type {
   InitiatePaymentResponseData,
   InvoiceItem,
   PaymentItem,
+  PlanCode,
   SubmitBankTransferPayload,
 } from "../types/billing.ts";
 
@@ -55,6 +56,24 @@ export class BillingService {
       throw new Error("Failed to initiate payment");
     }
     return res.data;
+  }
+
+  /**
+   * Initiates payment via ZiniPay automated gateway.
+   * Returns gateway checkout URL for instant redirection.
+   */
+  async payWithZinipay(
+    workspaceId: string,
+    planCode: PlanCode,
+  ): Promise<{ gatewayUrl: string; paymentId: string; invoiceNumber?: string }> {
+    const res = await apiClient.post<
+      ApiResponse<{ gatewayUrl: string; paymentId: string; invoiceNumber?: string }>
+    >(`/workspaces/${workspaceId}/billing/pay/zinipay`, { planCode });
+    const data = res.data;
+    if (!data?.gatewayUrl) {
+      throw new Error(res.message || "Failed to generate ZiniPay checkout session");
+    }
+    return data;
   }
 
   /**

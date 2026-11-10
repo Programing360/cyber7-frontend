@@ -18,6 +18,7 @@ import {
   Users,
   X,
   UserCheck,
+  MessageCircle,
 } from "lucide-react";
 import {
   adminService,
@@ -53,6 +54,11 @@ const navItems: NavItem[] = [
     href: "/admin/users",
     icon: Users,
     requiredRole: "SUPER_ADMIN",
+  },
+  {
+    name: "WhatsAPP INBOX",
+    href: "/admin/inbox",
+    icon: MessageCircle,
   },
   {
     name: "Subscriptions & Plans",
@@ -205,7 +211,7 @@ export default function PlatformAdminSidebar({
             </span>
             <span className="flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-wider">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live Backend
+              Live
             </span>
           </div>
           {profile?.user ? (

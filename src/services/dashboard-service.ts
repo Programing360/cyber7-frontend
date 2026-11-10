@@ -6,11 +6,21 @@
  */
 
 import apiClient from "../lib/api-client";
-import type { ApiResponse, DashboardStatsData } from "../types/api";
+import type {
+  ApiResponse,
+  DashboardStatsData,
+  WorkspaceAnalyticsData,
+  AnalyticsPeriod,
+} from "../types/api";
 
 export interface GetDashboardStatsParams {
   workspaceId: string;
   days?: number;
+}
+
+export interface GetWorkspaceAnalyticsParams {
+  workspaceId: string;
+  period?: AnalyticsPeriod;
 }
 
 export const dashboardService = {
@@ -37,6 +47,34 @@ export const dashboardService = {
     if (!response.data) {
       throw new Error(
         response.message || "Failed to load dashboard statistics",
+      );
+    }
+
+    return response.data;
+  },
+
+  /**
+   * Retrieves live, workspace-scoped analytics (message performance, status distribution, campaign metrics).
+   * Endpoint: GET /dashboard/:workspaceId/analytics
+   */
+  async getWorkspaceAnalytics({
+    workspaceId,
+    period = "30d",
+  }: GetWorkspaceAnalyticsParams): Promise<WorkspaceAnalyticsData> {
+    if (!workspaceId) {
+      throw new Error("Workspace ID is required to fetch workspace analytics");
+    }
+
+    const response = await apiClient.get<ApiResponse<WorkspaceAnalyticsData>>(
+      `/dashboard/${workspaceId}/analytics`,
+      {
+        params: { period },
+      },
+    );
+
+    if (!response.data) {
+      throw new Error(
+        response.message || "Failed to load workspace analytics",
       );
     }
 

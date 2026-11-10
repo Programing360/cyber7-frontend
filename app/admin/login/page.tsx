@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,12 +12,17 @@ import {
   ShieldAlert,
   ShieldCheck,
   RotateCcw,
+  Loader2,
 } from "lucide-react";
+import { getStoredToken } from "@/src/lib/token-storage";
 
 type LoginStep = "CREDENTIALS" | "OTP_CHALLENGE";
 
 export default function PlatformAdminLoginPage() {
   const router = useRouter();
+
+  // Initial Auth Check State
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   // Form States
   const [email, setEmail] = useState("");
@@ -33,6 +38,47 @@ export default function PlatformAdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
 
+  // ⚡ পেজ লোড হলেই অ্যাক্টিভ সেশন চেক করে সরাসরি রিডাইরেক্ট
+  useEffect(() => {
+    async function checkExistingAdminSession() {
+      try {
+        const token = getStoredToken();
+        const headers: Record<string, string> = {
+          Accept: "application/json",
+        };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const res = await fetch("/api/platform-admin/auth/session-check", {
+          method: "GET",
+          headers,
+          credentials: "include",
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          console.log(result);
+
+          if (
+            result.authenticated &&
+            (result.platformRole === "SUPER_ADMIN" ||
+              result.platformRole === "FINANCE_ADMIN")
+          ) {
+            router.replace("/admin");
+            return;
+          }
+        }
+      } catch {
+        // ফেইল করলে ইউজার লগইন পেজেই থাকবে
+      } finally {
+        setCheckingAuth(false);
+      }
+    }
+
+    checkExistingAdminSession();
+  }, [router]);
+
   // ১. প্রাথমিক লগইন সাবমিট (ইমেইল + পাসওয়ার্ড)
   const handlePrimaryLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +87,7 @@ export default function PlatformAdminLoginPage() {
     setResendStatus(null);
 
     try {
-      const res = await fetch("/api/admin/auth/login", {
+      const res = await fetch("/api/platform-admin/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -57,6 +103,12 @@ export default function PlatformAdminLoginPage() {
         throw new Error(result.message || "Invalid administrator credentials");
       }
 
+      // যদি অলরেডি অথেনটিকেটেড রেসপন্স ফেরত আসে
+      if (result.code === "ALREADY_AUTHENTICATED") {
+        router.push(result.data?.redirectTo || "/admin");
+        return;
+      }
+
       // ইমেইল ওটিপি স্ক্রিনে রূপান্তর
       if (
         result.code === "EMAIL_OTP_REQUIRED" ||
@@ -68,7 +120,7 @@ export default function PlatformAdminLoginPage() {
         return;
       }
 
-      // সরাসরি লগইন সফল হলে (যদি 2FA বন্ধ থাকে)
+      // সরাসরি লগইন সফল হলে
       router.push("/admin");
       router.refresh();
     } catch (err: unknown) {
@@ -85,7 +137,7 @@ export default function PlatformAdminLoginPage() {
     setError(null);
 
     try {
-      const res = await fetch("/api/admin/auth/mfa/verify", {
+      const res = await fetch("/api/platform-admin/auth/mfa/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -103,7 +155,6 @@ export default function PlatformAdminLoginPage() {
         );
       }
 
-      // সেশন সফল -> ড্যাশবোর্ডে প্রবেশ
       router.push("/admin");
       router.refresh();
     } catch (err: unknown) {
@@ -113,7 +164,7 @@ export default function PlatformAdminLoginPage() {
     }
   };
 
-  // ৩. পুনরায় OTP পাঠানোর রিকোয়েস্ট
+  // ৩. পুনরায় OTP পাঠানোর রিকোয়েস্ট
   const handleResendOtp = async () => {
     if (!challengeToken) return;
     setLoading(true);
@@ -121,7 +172,7 @@ export default function PlatformAdminLoginPage() {
     setResendStatus(null);
 
     try {
-      const res = await fetch("/api/admin/auth/resend-otp", {
+      const res = await fetch("/api/platform-admin/auth/resend-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -141,6 +192,20 @@ export default function PlatformAdminLoginPage() {
       setLoading(false);
     }
   };
+
+  // সেশন চেকিং চলাকালীন স্পিনার স্ক্রিন (যাতে লগইন ফর্ম চোখের পলকে ফ্লিকার না করে)
+  if (checkingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0b0f19] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#88da1c]" />
+          <p className="text-xs text-slate-400">
+            Verifying administrator session...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#0b0f19] px-4 py-12 text-slate-200">
@@ -179,7 +244,6 @@ export default function PlatformAdminLoginPage() {
 
         {/* Auth Card */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-8 shadow-2xl backdrop-blur-md">
-          {/* STEP 1: Email & Password */}
           {step === "CREDENTIALS" && (
             <form onSubmit={handlePrimaryLogin} className="space-y-4">
               <div>
@@ -235,7 +299,6 @@ export default function PlatformAdminLoginPage() {
             </form>
           )}
 
-          {/* STEP 2: Email OTP Input Screen */}
           {step === "OTP_CHALLENGE" && (
             <form onSubmit={handleOtpVerify} className="space-y-4">
               <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3.5 text-xs text-emerald-200">

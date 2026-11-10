@@ -89,13 +89,15 @@ export default function WhatsAppCallSystem() {
       <div className="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
         <div>
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-semibold tracking-wider uppercase mb-1">
-            UI Sandbox / Demo Preview Only
+            UI Sandbox 
           </div>
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <Phone className="text-emerald-500" /> WhatsApp Call Center (Preview)
+            <Phone className="text-emerald-500" /> WhatsApp Call Center
+            (Preview)
           </h2>
           <p className="text-sm text-slate-400">
-            Standalone UI Demo — Production calling is integrated in Inbox via real Socket.IO
+            Standalone UI Demo — Production calling is integrated in Inbox via
+            real Socket.IO
           </p>
         </div>
         <div className="flex gap-3">
@@ -210,10 +212,11 @@ export default function WhatsAppCallSystem() {
               {/* Mute Button */}
               <button
                 onClick={() => setIsMuted(!isMuted)}
-                className={`p-4 rounded-xl transition ${isMuted
+                className={`p-4 rounded-xl transition ${
+                  isMuted
                     ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                     : "bg-slate-800 hover:bg-slate-700 text-slate-200"
-                  }`}
+                }`}
                 title={isMuted ? "Unmute" : "Mute"}
               >
                 {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
@@ -222,10 +225,11 @@ export default function WhatsAppCallSystem() {
               {/* Speaker Toggle */}
               <button
                 onClick={() => setIsSpeakerOn(!isSpeakerOn)}
-                className={`p-4 rounded-xl transition ${!isSpeakerOn
+                className={`p-4 rounded-xl transition ${
+                  !isSpeakerOn
                     ? "bg-slate-800 text-slate-400"
                     : "bg-sky-500/20 text-sky-400 border border-sky-500/30"
-                  }`}
+                }`}
                 title={isSpeakerOn ? "Speaker Off" : "Speaker On"}
               >
                 {isSpeakerOn ? <Volume2 size={22} /> : <VolumeX size={22} />}

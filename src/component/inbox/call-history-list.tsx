@@ -41,13 +41,16 @@ export default function CallHistoryList({
     });
   }, [logs, search, filter]);
 
+  console.log(filteredLogs, logs);
+
   return (
     <div className="flex h-full flex-col bg-white">
       {/* Header & Search */}
       <div className="border-b border-[#f1f3f5] p-4 bg-slate-50/50">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <PhoneCall size={16} className="text-emerald-600" /> WhatsApp Call Logs
+            <PhoneCall size={16} className="text-emerald-600" /> WhatsApp Call
+            Logs
           </h3>
           <div className="flex items-center gap-2">
             {onRefresh && (
@@ -58,7 +61,10 @@ export default function CallHistoryList({
                 title="Refresh call logs"
                 className="rounded-lg p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition disabled:opacity-50"
               >
-                <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
+                <RefreshCw
+                  size={13}
+                  className={isLoading ? "animate-spin" : ""}
+                />
               </button>
             )}
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 border border-slate-200/60">

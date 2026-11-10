@@ -59,7 +59,7 @@ export default function WhatsAppIntegrationPage() {
   const [phoneNumberId, setPhoneNumberId] = useState("");
   const [businessAccountId, setBusinessAccountId] = useState("");
   const [accessToken, setAccessToken] = useState("");
-  console.log(businessAccountId);
+
   const role = activeWorkspace?.role;
   const canManage = role === "OWNER" || role === "ADMIN";
 
@@ -75,7 +75,7 @@ export default function WhatsAppIntegrationPage() {
     connectedAccounts: accounts.filter((acc) => acc.status === "CONNECTED")
       .length,
   });
-  // console.log(status);
+  console.log(status);
   const backendCallbackUrl = status.callbackUrl;
 
   // Fetch accounts and config status on workspace change
@@ -299,7 +299,7 @@ export default function WhatsAppIntegrationPage() {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-6xl space-y-8">
+      <div className="mx-auto max-w-6xl space-y-8 p-4">
         <div>
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Plug size={16} />
@@ -705,14 +705,14 @@ export default function WhatsAppIntegrationPage() {
                       id="business-account-id"
                       type="text"
                       required
-                      // value={businessAccountId}
+                      value={businessAccountId}
                       onChange={(e) => setBusinessAccountId(e.target.value)}
                       placeholder="e.g. 100234567890123"
                       className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20"
                     />
                     <p className="mt-1 text-xs text-slate-500">
-                      Found in Meta Business Manager under Business Settings
-                      &rarr; Accounts &rarr; WhatsApp Accounts. Numeric ID only.
+                      Found in Meta Business Manager under Business Settings &
+                      Accounts & WhatsApp Accounts. Numeric ID only.
                     </p>
                   </div>
 

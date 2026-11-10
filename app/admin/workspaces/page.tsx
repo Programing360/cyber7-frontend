@@ -15,7 +15,8 @@ import AdminFilters from "@/src/component/admin/admin-filters";
 import AdminPagination from "@/src/component/admin/admin-pagination";
 import AdminStatusBadge from "@/src/component/admin/admin-status-badge";
 import AdminDetailDrawer from "@/src/component/admin/admin-detail-drawer";
-import AdminUnimplementedModal from "@/src/component/admin/admin-unimplemented-modal";
+import AdminConfirmDialog from "@/src/component/admin/admin-confirm-dialog";
+import { adminToast } from "@/src/component/admin/admin-toast";
 import { adminService } from "@/src/services/admin-service";
 import type { AdminWorkspace } from "@/src/types/admin";
 
@@ -33,12 +34,14 @@ export default function AdminWorkspacesPage() {
   const [selectedWorkspace, setSelectedWorkspace] =
     useState<AdminWorkspace | null>(null);
 
-  // Modal for disabled mutation
-  const [mutationModalOpen, setMutationModalOpen] = useState(false);
-  const [mutationActionTitle, setMutationActionTitle] = useState("");
-  const [missingEndpoint, setMissingEndpoint] = useState(
-    "PATCH /api/admin/workspaces/:workspaceId/status",
-  );
+  // Mutation states
+  const [targetWorkspace, setTargetWorkspace] = useState<AdminWorkspace | null>(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [suspensionReason, setSuspensionReason] = useState("");
+  const [quotaModalOpen, setQuotaModalOpen] = useState(false);
+  const [maxWhatsAppNumbers, setMaxWhatsAppNumbers] = useState("");
+  const [maxTeamMembers, setMaxTeamMembers] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   const loadWorkspaces = async () => {
     setLoading(true);
@@ -51,7 +54,6 @@ export default function AdminWorkspacesPage() {
         limit: 10,
       });
 
-     
       setWorkspaces(res.items);
       setTotal(res.total);
       setTotalPages(res.totalPages);
@@ -66,13 +68,66 @@ export default function AdminWorkspacesPage() {
     loadWorkspaces();
   }, [search, statusFilter, page]);
 
-  const handleActionClick = (
-    actionName: string,
-    endpoint = "PATCH /api/admin/workspaces/:workspaceId/status",
-  ) => {
-    setMutationActionTitle(actionName);
-    setMissingEndpoint(endpoint);
-    setMutationModalOpen(true);
+  const handleToggleStatus = (ws: AdminWorkspace) => {
+    setTargetWorkspace(ws);
+    setSuspensionReason("");
+    setStatusModalOpen(true);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!targetWorkspace) return;
+    const nextStatus = targetWorkspace.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+    setActionLoading(true);
+    try {
+      await adminService.updateWorkspaceStatus(targetWorkspace.id, {
+        status: nextStatus,
+        reason: suspensionReason.trim() || undefined,
+      });
+      adminToast.success(
+        `Workspace ${nextStatus === "ACTIVE" ? "Reactivated" : "Suspended"}`,
+        `Workspace "${targetWorkspace.name}" is now ${nextStatus.toLowerCase()}.`,
+      );
+      setStatusModalOpen(false);
+      setSelectedWorkspace(null);
+      await loadWorkspaces();
+    } catch (err: any) {
+      adminToast.error("Status Update Failed", err?.message || "Failed to update workspace status.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenQuotas = (ws: AdminWorkspace) => {
+    setTargetWorkspace(ws);
+    setMaxWhatsAppNumbers("");
+    setMaxTeamMembers("");
+    setQuotaModalOpen(true);
+  };
+
+  const handleConfirmQuotas = async () => {
+    if (!targetWorkspace) return;
+    setActionLoading(true);
+    try {
+      const parsedWhatsApp = maxWhatsAppNumbers.trim() ? parseInt(maxWhatsAppNumbers, 10) : null;
+      const parsedMembers = maxTeamMembers.trim() ? parseInt(maxTeamMembers, 10) : null;
+
+      await adminService.updateWorkspaceQuotas(targetWorkspace.id, {
+        maxWhatsAppNumbers: parsedWhatsApp,
+        maxTeamMembers: parsedMembers,
+      });
+
+      adminToast.success(
+        "Quotas Updated",
+        `Custom limits applied to workspace "${targetWorkspace.name}".`,
+      );
+      setQuotaModalOpen(false);
+      setSelectedWorkspace(null);
+      await loadWorkspaces();
+    } catch (err: any) {
+      adminToast.error("Quota Update Failed", err?.message || "Failed to adjust workspace quotas.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleResetFilters = () => {
@@ -253,15 +308,12 @@ export default function AdminWorkspacesPage() {
                           Inspect
                         </button>
                         <button
-                          onClick={() =>
-                            handleActionClick(
-                              ws.status === "ACTIVE"
-                                ? "Suspend Workspace"
-                                : "Activate Workspace",
-                              "PATCH /api/admin/workspaces/:workspaceId/status",
-                            )
-                          }
-                          className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 focus:outline-hidden focus:ring-2 focus:ring-amber-400"
+                          onClick={() => handleToggleStatus(ws)}
+                          className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold focus:outline-hidden focus:ring-2 ${
+                            ws.status === "ACTIVE"
+                              ? "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 focus:ring-amber-400"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 focus:ring-emerald-400"
+                          }`}
                         >
                           <Lock size={12} />
                           {ws.status === "ACTIVE" ? "Suspend" : "Activate"}
@@ -381,51 +433,90 @@ export default function AdminWorkspacesPage() {
               </h4>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() =>
-                    handleActionClick(
-                      "Update Workspace Quotas",
-                      "PATCH /api/admin/workspaces/:workspaceId/quotas",
-                    )
-                  }
-                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+                  onClick={() => handleOpenQuotas(selectedWorkspace)}
+                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c] cursor-pointer"
                 >
                   Adjust Quotas
                 </button>
                 <button
-                  onClick={() =>
-                    handleActionClick(
-                      "Inspect Workspace Audit Logs",
-                      "GET /api/admin/workspaces/:workspaceId/audit-logs",
-                    )
-                  }
-                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+                  onClick={() => handleToggleStatus(selectedWorkspace)}
+                  className={`rounded-xl border p-2.5 text-center font-semibold cursor-pointer ${
+                    selectedWorkspace.status === "ACTIVE"
+                      ? "border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-100"
+                      : "border-emerald-200 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100"
+                  }`}
                 >
-                  Audit Logs
+                  {selectedWorkspace.status === "ACTIVE" ? "Suspend Workspace" : "Reactivate Workspace"}
                 </button>
-              </div>
-            </div>
-
-            {/* Actions Warning */}
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 flex items-start gap-2.5">
-              <ShieldAlert size={16} className="text-amber-600 mt-0.5 shrink-0" />
-              <div className="text-amber-900 text-[11px]">
-                <strong>Administrative Restriction:</strong> Workspace mutations
-                (e.g., suspension, quota updates, plan changes) are disabled
-                because backend API endpoints are in specification phase.
               </div>
             </div>
           </div>
         )}
       </AdminDetailDrawer>
 
-      {/* Mutation Unavailable Modal */}
-      <AdminUnimplementedModal
-        open={mutationModalOpen}
-        onClose={() => setMutationModalOpen(false)}
-        actionTitle={mutationActionTitle}
-        missingEndpoint={missingEndpoint}
-        explanation="The endpoint to mutate workspace status or quotas across the multi-tenant platform does not exist in cyber7-backend. Fake database mutations are disabled to maintain architectural integrity."
-      />
+      {/* Workspace Status Toggle Modal */}
+      <AdminConfirmDialog
+        open={statusModalOpen}
+        onClose={() => setStatusModalOpen(false)}
+        onConfirm={handleConfirmStatusChange}
+        title={targetWorkspace?.status === "ACTIVE" ? "Suspend Workspace" : "Reactivate Workspace"}
+        description={
+          targetWorkspace?.status === "ACTIVE"
+            ? `Are you sure you want to suspend workspace "${targetWorkspace?.name}"? Its users will be prevented from sending messages or triggering campaigns.`
+            : `Are you sure you want to reactivate workspace "${targetWorkspace?.name}"? Normal operations will resume immediately.`
+        }
+        confirmText={targetWorkspace?.status === "ACTIVE" ? "Suspend Workspace" : "Reactivate Workspace"}
+        isLoading={actionLoading}
+        variant={targetWorkspace?.status === "ACTIVE" ? "destructive" : "primary"}
+      >
+        {targetWorkspace?.status === "ACTIVE" && (
+          <div className="mt-3 text-xs">
+            <label className="font-semibold text-slate-700">Suspension Reason (Optional)</label>
+            <input
+              type="text"
+              value={suspensionReason}
+              onChange={(e) => setSuspensionReason(e.target.value)}
+              placeholder="e.g., Billing default or violation of terms"
+              className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+            />
+          </div>
+        )}
+      </AdminConfirmDialog>
+
+      {/* Workspace Quotas Adjustment Modal */}
+      <AdminConfirmDialog
+        open={quotaModalOpen}
+        onClose={() => setQuotaModalOpen(false)}
+        onConfirm={handleConfirmQuotas}
+        title="Adjust Workspace Quotas"
+        description={`Set custom tier overrides for "${targetWorkspace?.name}". Leave blank to inherit default plan tier limits, or enter -1 for unlimited.`}
+        confirmText="Save Quotas"
+        isLoading={actionLoading}
+        variant="primary"
+      >
+        <div className="space-y-3 mt-3 text-xs">
+          <div>
+            <label className="font-semibold text-slate-700">Max WhatsApp Numbers</label>
+            <input
+              type="number"
+              value={maxWhatsAppNumbers}
+              onChange={(e) => setMaxWhatsAppNumbers(e.target.value)}
+              placeholder="e.g., 5 (-1 for unlimited, blank to reset)"
+              className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+            />
+          </div>
+          <div>
+            <label className="font-semibold text-slate-700">Max Team Members</label>
+            <input
+              type="number"
+              value={maxTeamMembers}
+              onChange={(e) => setMaxTeamMembers(e.target.value)}
+              placeholder="e.g., 20 (-1 for unlimited, blank to reset)"
+              className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+            />
+          </div>
+        </div>
+      </AdminConfirmDialog>
     </div>
   );
 }

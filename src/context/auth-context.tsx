@@ -27,9 +27,11 @@ import type {
 
 interface AuthContextType {
   user: AuthUser | null;
+  platformRole: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (input: LoginInput) => Promise<void>;
+  setSession: (user: AuthUser, token: string) => void;
+  login: (input: LoginInput) => Promise<AuthUser>;
   register: (input: RegisterInput) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -60,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await apiClient.get<ApiResponse<CurrentUserResponseData>>("/auth/me");
 
       if (response && response.data?.user) {
+        console.log(response);
         setUser(response.data.user);
       } else {
         removeStoredToken();
@@ -83,23 +86,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
-  const login = async (input: LoginInput) => {
+  const login = async (input: LoginInput): Promise<AuthUser> => {
     const response = await apiClient.post<
       ApiResponse<LoginResponseData>,
       LoginInput
     >("/auth/login", input, { skipAuth: true });
 
     if (response?.data?.accessToken && response?.data?.user) {
-      setStoredToken(response.data.accessToken);
-      setUser(response.data.user);
-    } else {
-      throw new ApiClientError({
-        message: "Invalid login response received from server",
-        status: 500,
-      });
-    }
-  };
+      const authenticatedUser = response.data.user;
 
+      setStoredToken(response.data.accessToken);
+      setUser(authenticatedUser);
+
+      return authenticatedUser;
+    }
+
+    throw new ApiClientError({
+      message: "Invalid login response received from server",
+      status: 500,
+    });
+  };
+  
   const register = async (input: RegisterInput) => {
     const response = await apiClient.post<
       ApiResponse<RegisterResponseData>,
@@ -119,6 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password: input.password,
     });
   };
+  const setSession = useCallback((user: AuthUser, token: string) => {
+    setStoredToken(token);
+    setUser(user);
+    setIsLoading(false);
+  }, []);
 
   const logout = useCallback(() => {
     removeStoredToken();
@@ -130,8 +142,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        platformRole: user?.platformRole || (user as any)?.role || null,
         isLoading,
         isAuthenticated: !!user,
+        setSession,
         login,
         register,
         logout,

@@ -18,16 +18,23 @@ export interface StartCallPayload {
   workspaceId: string;
   phoneNumber: string;
   callerName?: string;
+  sdpOffer?: string; // WebRTC SDP Offer
 }
 
 export interface StartCallResult {
   id: string;
-  workspaceId: string;
-  phoneNumber: string;
-  callerName: string;
-  callType: string;
+  callId?: string;
+  callSid?: string;
   status: string;
-  startedAt: string;
+  session?: {
+    sdp_type?: string;
+    sdp?: string;
+  } | null;
+  workspaceId?: string;
+  phoneNumber?: string;
+  callerName?: string;
+  callType?: string;
+  startedAt?: string;
 }
 
 export const callService = {
@@ -69,10 +76,7 @@ export const callService = {
   },
 
   /**
-   * Initiate an outgoing WhatsApp call session via the backend.
-   *
-   * Note: Outbound calling endpoints in the backend currently return HTTP 501
-   * (META_CALLING_NOT_IMPLEMENTED) until the Meta Cloud Calling VoIP API is configured.
+   * Initiate an outgoing WhatsApp call session via the backend with WebRTC SDP offer.
    */
   async startCall(payload: StartCallPayload): Promise<StartCallResult | null> {
     if (!payload?.workspaceId) {
@@ -87,6 +91,7 @@ export const callService = {
       }>(`/workspaces/${encodeURIComponent(payload.workspaceId)}/calls/start`, {
         phoneNumber: payload.phoneNumber,
         callerName: payload.callerName,
+        sdpOffer: payload.sdpOffer,
       });
 
       return response.call || response.data || null;
@@ -103,9 +108,6 @@ export const callService = {
 
   /**
    * Terminate a call session in the backend.
-   *
-   * Note: Backend provider call termination returns HTTP 501
-   * (META_CALL_TERMINATION_NOT_IMPLEMENTED) until the Meta Cloud Calling API is configured.
    */
   async endCall(
     workspaceId: string,

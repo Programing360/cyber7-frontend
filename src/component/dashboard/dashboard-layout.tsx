@@ -35,7 +35,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="flex min-h-screen items-center justify-center bg-[#f7f9f4]">
         <div className="flex flex-col items-center gap-3">
           <div className="h-9 w-9 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
-          <p className="text-xs font-medium text-slate-500">Loading workspace...</p>
+          <p className="text-xs font-medium text-slate-500">
+            Loading workspace...
+          </p>
         </div>
       </div>
     );
@@ -52,7 +54,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="min-h-screen lg:pl-[270px]">
         <Header onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="min-h-[calc(100vh-76px)] p-4 sm:p-6 lg:p-8">
+        <main className="min-h-[calc(100vh-76px)]">
           {!hasWorkspaces ? <EmptyWorkspaceView /> : children}
         </main>
       </div>

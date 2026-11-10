@@ -1,12 +1,20 @@
 import type {
+  AdminAnalyticsData,
   AdminInvoice,
   AdminPayment,
   AdminPlatformOverviewMetrics,
   AdminPlatformUser,
   AdminSubscription,
   AdminSupportTicket,
+  AdminSupportMessage,
   AdminWorkspace,
+  AdminPlatformSettings,
+  GatewaysHealthReport,
+  AdminPlan,
+  CreateCustomPlanInput,
+  UpdatePlanInput,
 } from "../types/admin.ts";
+import { getStoredToken } from "../lib/token-storage";
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -14,6 +22,13 @@ export interface PaginatedResult<T> {
   page: number;
   limit: number;
   totalPages: number;
+  stats?: {
+    total: number;
+    open: number;
+    inProgress: number;
+    resolved: number;
+    urgent?: number;
+  };
   source: "LIVE_BACKEND";
 }
 
@@ -93,8 +108,8 @@ async function resolveAdminBffAssertion(): Promise<string | null> {
 
   try {
     // Optional dynamic resolution if defined in global scope or environment
-    const globalAssertionFn = (globalThis as Record<string, any>)
-      .generateAdminBffAssertion;
+    const globalAssertionFn = (globalThis as Record<string, unknown>)
+      .generateAdminBffAssertion as (() => Promise<string>) | undefined;
     if (typeof globalAssertionFn === "function") {
       return await globalAssertionFn();
     }
@@ -132,6 +147,14 @@ class AdminService {
       const assertion = await resolveAdminBffAssertion();
       if (assertion) {
         headers["x-admin-bff-assertion"] = assertion;
+      }
+    }
+
+    // Attach user access token in browser if Authorization header not explicitly set
+    if (isBrowser && !headers["authorization"] && !headers["Authorization"]) {
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers["authorization"] = `Bearer ${storedToken}`;
       }
     }
 
@@ -349,15 +372,375 @@ class AdminService {
     await this.fetchBff("/api/admin/auth/logout", { method: "POST" });
   }
 
-  async listSupportTickets(): Promise<PaginatedResult<AdminSupportTicket>> {
+  // ==========================================
+  // 1. PAYMENTS & FINANCIAL MUTATIONS
+  // ==========================================
+
+  async approveBankTransfer(
+    paymentId: string,
+    payload?: { adminNotes?: string; stepUpToken?: string },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/billing/bank-transfers/${paymentId}/approve`, {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async rejectBankTransfer(
+    paymentId: string,
+    payload: { rejectionReason: string },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/billing/bank-transfers/${paymentId}/reject`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async refundPayment(
+    paymentId: string,
+    payload: { reason: string },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/billing/payments/${paymentId}/refund`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async downloadReceiptPdf(paymentId: string, receiptNumber?: string): Promise<void> {
+    const res = await fetch(`/api/admin/dashboard/billing/payments/${paymentId}/receipt`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new AdminApiError("Failed to download payment receipt PDF", res.status, "RECEIPT_DOWNLOAD_FAILED");
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Receipt-${receiptNumber || paymentId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  // ==========================================
+  // 2. WORKSPACES & TENANT GOVERNANCE
+  // ==========================================
+
+  async updateWorkspaceStatus(
+    workspaceId: string,
+    payload: { status: "ACTIVE" | "SUSPENDED"; reason?: string },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/workspaces/${workspaceId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateWorkspaceQuotas(
+    workspaceId: string,
+    payload: { maxWhatsAppNumbers?: number | null; maxTeamMembers?: number | null },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/workspaces/${workspaceId}/quotas`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // ==========================================
+  // 3. USERS & ACCESS CONTROL
+  // ==========================================
+
+  async updateUserRole(
+    userId: string,
+    payload: { platformRole: "USER" | "FINANCE_ADMIN" | "SUPER_ADMIN" },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/users/${userId}/role`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async revokeUserSessions(
+    userId: string,
+    payload?: { reason?: string },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/users/${userId}/revoke-sessions`, {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async updateUserStatus(
+    userId: string,
+    payload: { isActive: boolean; reason?: string },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/users/${userId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteUser(
+    userId: string,
+    payload: { confirmation: "DELETE" },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/users/${userId}`, {
+      method: "DELETE",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // ==========================================
+  // 4. SUBSCRIPTIONS & CATALOG
+  // ==========================================
+
+  async listPlans(): Promise<{ plans: AdminPlan[] }> {
+    return this.fetchBff(`/api/admin/dashboard/billing/plans`, {
+      method: "GET",
+    });
+  }
+
+  async createCustomPlan(
+    payload: CreateCustomPlanInput,
+  ): Promise<{ plan: AdminPlan }> {
+    return this.fetchBff(`/api/admin/dashboard/billing/plans`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updatePlan(
+    planCode: string,
+    payload: UpdatePlanInput,
+  ): Promise<{ plan: AdminPlan }> {
+    return this.fetchBff(`/api/admin/dashboard/billing/plans/${planCode}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deletePlan(
+    planCode: string,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.fetchBff(`/api/admin/dashboard/billing/plans/${planCode}`, {
+      method: "DELETE",
+    });
+  }
+
+  async modifySubscriptionPlan(
+    subscriptionId: string,
+    payload: { planCode: string; immediate?: boolean },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/subscriptions/${subscriptionId}/plan`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async cancelSubscription(
+    subscriptionId: string,
+    payload: { cancelAtPeriodEnd?: boolean; reason?: string },
+  ): Promise<Record<string, unknown>> {
+    return this.fetchBff(`/api/admin/dashboard/subscriptions/${subscriptionId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // ==========================================
+  // 5. INVOICES & DOCUMENTS
+  // ==========================================
+
+  async downloadInvoicePdf(invoiceId: string, invoiceNumber?: string): Promise<void> {
+    const res = await fetch(`/api/admin/dashboard/invoices/${invoiceId}/pdf`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new AdminApiError("Failed to download invoice PDF", res.status, "INVOICE_DOWNLOAD_FAILED");
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Invoice-${invoiceNumber || invoiceId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  async resendInvoiceEmail(
+    invoiceId: string,
+    payload?: { recipientEmail?: string },
+  ): Promise<{ success: boolean; message: string; recipientEmail: string }> {
+    return this.fetchBff(`/api/admin/dashboard/invoices/${invoiceId}/resend`, {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  // ==========================================
+  // 6. SUPPORT TICKETING
+  // ==========================================
+
+  async listSupportTickets(params?: {
+    search?: string;
+    status?: string;
+    priority?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResult<AdminSupportTicket>> {
+    const searchParams = new URLSearchParams();
+    if (params?.search?.trim()) searchParams.set("search", params.search.trim());
+    if (params?.status && params.status !== "ALL") searchParams.set("status", params.status);
+    if (params?.priority && params.priority !== "ALL") searchParams.set("priority", params.priority);
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("pageSize", String(params.limit));
+
+    const qs = searchParams.toString();
+    const res = await this.fetchBff<{
+      items: AdminSupportTicket[];
+      total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
+      stats?: {
+        total: number;
+        open: number;
+        inProgress: number;
+        resolved: number;
+        urgent?: number;
+      };
+    }>(`/api/admin/dashboard/support/tickets${qs ? `?${qs}` : ""}`);
+
     return {
-      items: [],
-      total: 0,
-      page: 1,
-      limit: 10,
-      totalPages: 1,
+      items: res?.items || [],
+      total: res?.total || 0,
+      page: res?.page || 1,
+      limit: res?.pageSize || 10,
+      totalPages: res?.totalPages || 1,
+      stats: res?.stats,
       source: "LIVE_BACKEND",
     };
+  }
+
+  async createSupportTicket(payload: {
+    workspaceId: string;
+    workspaceName?: string;
+    customerName: string;
+    customerEmail: string;
+    subject: string;
+    priority?: string;
+    initialMessage?: string;
+  }): Promise<AdminSupportTicket> {
+    return this.fetchBff("/api/admin/dashboard/support/tickets", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async assignSupportTicket(
+    ticketId: string,
+    payload: { assignedAdminId?: string | null },
+  ): Promise<AdminSupportTicket> {
+    return this.fetchBff(`/api/admin/dashboard/support/tickets/${ticketId}/assign`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateSupportTicketStatus(
+    ticketId: string,
+    payload: { status: string },
+  ): Promise<AdminSupportTicket> {
+    return this.fetchBff(`/api/admin/dashboard/support/tickets/${ticketId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async addSupportTicketMessage(
+    ticketId: string,
+    payload: { content: string; attachments?: Array<{ filename: string; url: string }> },
+  ): Promise<AdminSupportMessage> {
+    return this.fetchBff(`/api/admin/dashboard/support/tickets/${ticketId}/messages`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // ==========================================
+  // 7. PLATFORM SETTINGS & SYSTEM CONTROLS
+  // ==========================================
+
+  async getPlatformSettings(): Promise<AdminPlatformSettings> {
+    return this.fetchBff<AdminPlatformSettings>("/api/admin/dashboard/settings");
+  }
+
+  async updatePlatformSettings(payload: {
+    currency?: string;
+    maintenanceMode?: boolean;
+    sessionPolicies?: Partial<AdminPlatformSettings["sessionPolicies"]>;
+    gatewayToggles?: Partial<AdminPlatformSettings["gatewayToggles"]>;
+  }): Promise<AdminPlatformSettings> {
+    return this.fetchBff<AdminPlatformSettings>("/api/admin/dashboard/settings", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getGatewayHealth(): Promise<GatewaysHealthReport> {
+    return this.fetchBff<GatewaysHealthReport>("/api/admin/dashboard/billing/gateways/health");
+  }
+
+  async purgeExpiredSessions(): Promise<{ success: boolean; purgedCount: number }> {
+    return this.fetchBff<{ success: boolean; purgedCount: number }>(
+      "/api/admin/dashboard/auth/sessions/purge",
+      { method: "POST" },
+    );
+  }
+
+  /**
+   * Fetches full platform analytics aggregations (MRR, user growth, plan distribution, payment methods)
+   */
+  async getAnalyticsData(): Promise<AdminAnalyticsData> {
+    return this.fetchBff<AdminAnalyticsData>("/api/admin/dashboard/analytics");
+  }
+
+  /**
+   * Downloads platform analytics CSV report
+   */
+  async downloadAnalyticsCsv(): Promise<void> {
+    const res = await fetch("/api/admin/dashboard/analytics/export", {
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new AdminApiError(
+        "Failed to download analytics report",
+        res.status,
+        "EXPORT_FAILED",
+      );
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `vexchat-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   }
 }
 

@@ -14,7 +14,9 @@ import {
   RotateCw,
 } from "lucide-react";
 import DashboardLayout from "@/src/component/dashboard/dashboard-layout";
-import StatCard, { type StatCardData } from "@/src/component/dashboard/stat-card";
+import StatCard, {
+  type StatCardData,
+} from "@/src/component/dashboard/stat-card";
 import MessagesChart from "@/src/component/dashboard/messages-chart";
 import WhatsAppStatus from "@/src/component/dashboard/whatsapp-status";
 import RecentConversations from "@/src/component/dashboard/recent-conversations";
@@ -40,8 +42,7 @@ export default function DashboardPage() {
 
     let isCurrent = true;
     const currentWorkspaceId = activeWorkspace.id;
-    const daysCount =
-      period === "30 days" ? 30 : period === "90 days" ? 90 : 7;
+    const daysCount = period === "30 days" ? 30 : period === "90 days" ? 90 : 7;
 
     const fetchStats = async () => {
       // Immediately clear error and start loading to prevent showing stale workspace data
@@ -109,7 +110,7 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-[1600px]">
+      <div className="mx-auto max-w-[1600px] p-4">
         {/* Page heading */}
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>

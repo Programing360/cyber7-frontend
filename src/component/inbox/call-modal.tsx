@@ -49,9 +49,14 @@ export default function CallModal({
   onToggleMute,
   onToggleSpeaker,
 }: CallModalProps) {
-  if (!isOpen || !call || callState === "idle") return null;
+  // 🔥 ফিক্স: callState idle হলে বা isOpen false হলে রেন্ডার হবে না
+  if (!isOpen || callState === "idle") return null;
 
-  console.log(error, notice);
+  const currentCall: ActiveCallData = call || {
+    name: "WhatsApp Caller",
+    phone: "Unknown",
+    type: "incoming",
+  };
 
   const formatTimer = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -59,36 +64,37 @@ export default function CallModal({
     return `${mins.toString().padStart(2, "0")}:${remaining.toString().padStart(2, "0")}`;
   };
 
-  const isIncomingRinging = call.type === "incoming" && callState === "ringing";
-  // "assigned" = agent claimed in DB; "connected" = real provider (not yet implemented).
+  const isIncomingRinging =
+    currentCall.type === "incoming" && callState === "ringing";
   const isActiveCall = callState === "assigned" || callState === "connected";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-[#f1f3f5]/15 bg-slate-900/95 p-6 text-center shadow-2xl shadow-black/80">
-        {/* Glow Effects */}
         <div className="pointer-events-none absolute -top-12 left-1/2 h-44 w-44 -translate-x-1/2 rounded-full bg-emerald-500/15 blur-3xl" />
 
-        {/* Status Tag */}
         <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1 text-[11px] font-medium text-emerald-400 shadow-sm">
           <ShieldCheck size={13} /> WhatsApp Cloud Calling
         </div>
 
-        {/* Caller Avatar */}
         <div className="relative mx-auto mb-4 flex h-24 w-24 items-center justify-center">
           {callState === "ringing" && (
             <div className="absolute -inset-2 animate-ping rounded-full bg-emerald-500/20" />
           )}
           <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 to-teal-800 text-2xl font-bold text-white shadow-xl ring-4 ring-slate-800 border border-white/20">
-            {call.name ? call.name.slice(0, 2).toUpperCase() : "??"}
+            {currentCall.name
+              ? currentCall.name.slice(0, 2).toUpperCase()
+              : "??"}
           </div>
         </div>
 
-        {/* Name & Phone */}
-        <h3 className="text-lg font-bold text-white tracking-tight">{call.name}</h3>
-        <p className="mt-0.5 text-xs font-mono text-slate-400">{call.phone}</p>
+        <h3 className="text-lg font-bold text-white tracking-tight">
+          {currentCall.name}
+        </h3>
+        <p className="mt-0.5 text-xs font-mono text-slate-400">
+          {currentCall.phone}
+        </p>
 
-        {/* Dynamic Notices / Feedback */}
         {notice && (
           <div className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-300">
             <Users size={14} className="shrink-0" />
@@ -103,32 +109,32 @@ export default function CallModal({
           </div>
         )}
 
-        {/* Call Timer or Status */}
         {!notice && !error && (
           <div className="mt-4">
             {callState === "ringing" && (
               <p className="animate-pulse text-xs font-medium text-emerald-400">
-                {call.type === "outgoing"
+                {currentCall.type === "outgoing"
                   ? "Dialing via WhatsApp..."
                   : "Incoming WhatsApp Call..."}
               </p>
             )}
-            {(callState === "assigned" || callState === "connected") && (
+            {isActiveCall && (
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-800/80 border border-white/10 px-3.5 py-1 text-xs font-mono text-emerald-300 shadow-inner">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                {callState === "assigned" ? "Assigned • " : ""}{formatTimer(duration)}
+                {callState === "assigned" ? "Assigned • " : ""}
+                {formatTimer(duration)}
               </div>
             )}
             {callState === "ended" && (
-              <p className="text-xs font-medium text-rose-400 animate-pulse">Call Ended</p>
+              <p className="text-xs font-medium text-rose-400 animate-pulse">
+                Call Ended
+              </p>
             )}
           </div>
         )}
 
-        {/* In-Call Controls */}
         <div className="mt-8 flex items-center justify-center gap-5">
           {isIncomingRinging ? (
-            /* Incoming Call Actions: Accept or Decline */
             <>
               <button
                 type="button"
@@ -148,7 +154,6 @@ export default function CallModal({
               </button>
             </>
           ) : (
-            /* Active Call Controls: Mute, Hangup, Speaker */
             <>
               <button
                 type="button"
@@ -164,7 +169,6 @@ export default function CallModal({
                 {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
               </button>
 
-              {/* End Call Button */}
               <button
                 type="button"
                 onClick={onEndCall}

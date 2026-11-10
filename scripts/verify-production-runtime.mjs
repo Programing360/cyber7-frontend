@@ -206,11 +206,6 @@ async function run() {
       leakedData: false,
     });
 
-    console.log(
-      "\n================ PRODUCTION RUNTIME AUDIT SUMMARY ================",
-    );
-    console.table(results);
-
     const allPassed = results.every((r) => r.failClosed);
     if (!allPassed) {
       console.error(

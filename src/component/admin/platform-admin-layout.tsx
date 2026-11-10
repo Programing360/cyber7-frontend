@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import PlatformAdminSidebar from "@/src/component/admin/platform-admin-sidebar";
 import PlatformAdminHeader from "@/src/component/admin/platform-admin-header";
+import { AdminToastContainer } from "@/src/component/admin/admin-toast";
 import {
   adminService,
   type AdminSessionProfile,
@@ -94,8 +95,17 @@ export default function PlatformAdminLayout({
           session={session}
           onOpenSidebar={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 p-6">{children}</main>
+        <main
+          className={`flex-1 ${
+            pathname.startsWith("/admin/inbox")
+              ? "p-2 sm:p-4 lg:p-5"
+              : "p-6"
+          }`}
+        >
+          {children}
+        </main>
       </div>
+      <AdminToastContainer />
     </div>
   );
 }

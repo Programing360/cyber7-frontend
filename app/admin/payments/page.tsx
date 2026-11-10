@@ -16,7 +16,8 @@ import AdminFilters from "@/src/component/admin/admin-filters";
 import AdminPagination from "@/src/component/admin/admin-pagination";
 import AdminStatusBadge from "@/src/component/admin/admin-status-badge";
 import AdminDetailDrawer from "@/src/component/admin/admin-detail-drawer";
-import AdminUnimplementedModal from "@/src/component/admin/admin-unimplemented-modal";
+import AdminConfirmDialog from "@/src/component/admin/admin-confirm-dialog";
+import { adminToast } from "@/src/component/admin/admin-toast";
 import { adminService } from "@/src/services/admin-service";
 import type { AdminPayment } from "@/src/types/admin";
 
@@ -37,11 +38,14 @@ export default function AdminPaymentsPage() {
   );
   const [drawerPayment, setDrawerPayment] = useState<AdminPayment | null>(null);
 
-  // Unimplemented modal for mutations / blocked legacy endpoints
-  const [mutationModalOpen, setMutationModalOpen] = useState(false);
-  const [mutationActionTitle, setMutationActionTitle] = useState("");
-  const [missingEndpoint, setMissingEndpoint] = useState("");
-  const [mutationExplanation, setMutationExplanation] = useState("");
+  // Action modal states for mutations
+  const [activeAction, setActiveAction] = useState<"APPROVE" | "REJECT" | "REFUND" | null>(null);
+  const [targetPayment, setTargetPayment] = useState<AdminPayment | null>(null);
+  const [adminNotes, setAdminNotes] = useState("");
+  const [stepUpToken, setStepUpToken] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [refundReason, setRefundReason] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   const loadPayments = async () => {
     setLoading(true);
@@ -79,45 +83,104 @@ export default function AdminPaymentsPage() {
   };
 
   const handleApproveClick = (p: AdminPayment) => {
-    setMutationActionTitle("Approve City Bank Transfer");
-    setMissingEndpoint(
-      "POST /api/admin/billing/bank-transfers/:paymentId/approve",
-    );
-    setMutationExplanation(
-      "City Bank transfer approval is disabled in the Admin Portal. The legacy backend endpoint depends on customer JWT authentication; direct invocation from the Admin Portal is strictly blocked to maintain customer credential isolation until dedicated AdminSession authentication and TOTP step-up (Phase 02B.4/5) are implemented.",
-    );
-    setMutationModalOpen(true);
+    setTargetPayment(p);
+    setAdminNotes("");
+    setStepUpToken("");
+    setActiveAction("APPROVE");
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!targetPayment) return;
+    setActionLoading(true);
+    try {
+      await adminService.approveBankTransfer(targetPayment.id, {
+        adminNotes: adminNotes.trim() || undefined,
+        stepUpToken: stepUpToken.trim() || undefined,
+      });
+      adminToast.success(
+        "Bank Transfer Approved",
+        `Payment for ${targetPayment.workspaceName} of BDT ${targetPayment.amount.toLocaleString()} has been approved.`,
+      );
+      setActiveAction(null);
+      setSelectedPayment(null);
+      await loadPayments();
+    } catch (err: any) {
+      adminToast.error("Approval Failed", err?.message || "Failed to approve bank transfer.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleRejectClick = (p: AdminPayment) => {
-    setMutationActionTitle("Reject City Bank Transfer");
-    setMissingEndpoint(
-      "POST /api/admin/billing/bank-transfers/:paymentId/reject",
-    );
-    setMutationExplanation(
-      "City Bank transfer rejection is disabled in the Admin Portal. The legacy backend endpoint depends on customer JWT authentication; direct invocation from the Admin Portal is strictly blocked to maintain customer credential isolation until dedicated AdminSession authentication and TOTP step-up (Phase 02B.4/5) are implemented.",
-    );
-    setMutationModalOpen(true);
+    setTargetPayment(p);
+    setRejectionReason("");
+    setActiveAction("REJECT");
+  };
+
+  const handleConfirmReject = async () => {
+    if (!targetPayment) return;
+    if (!rejectionReason.trim()) {
+      adminToast.error("Validation Error", "Rejection reason is required.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await adminService.rejectBankTransfer(targetPayment.id, {
+        rejectionReason: rejectionReason.trim(),
+      });
+      adminToast.success(
+        "Bank Transfer Rejected",
+        `Payment for ${targetPayment.workspaceName} has been rejected.`,
+      );
+      setActiveAction(null);
+      setSelectedPayment(null);
+      await loadPayments();
+    } catch (err: any) {
+      adminToast.error("Rejection Failed", err?.message || "Failed to reject bank transfer.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleRefundClick = (p: AdminPayment) => {
-    setMutationActionTitle("Refund Payment");
-    setMissingEndpoint("POST /api/admin/billing/payments/:paymentId/refund");
-    setMutationExplanation(
-      "Payment refunds and reverse balance mutations are not implemented in cyber7-backend. Fake balance manipulations are disabled to preserve financial ledger accuracy.",
-    );
-    setMutationModalOpen(true);
+    setTargetPayment(p);
+    setRefundReason("");
+    setActiveAction("REFUND");
   };
 
-  const handleCustomAction = (
-    actionName: string,
-    endpoint: string,
-    explanationText: string,
-  ) => {
-    setMutationActionTitle(actionName);
-    setMissingEndpoint(endpoint);
-    setMutationExplanation(explanationText);
-    setMutationModalOpen(true);
+  const handleConfirmRefund = async () => {
+    if (!targetPayment) return;
+    if (refundReason.trim().length < 3) {
+      adminToast.error("Validation Error", "Refund reason must be at least 3 characters.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await adminService.refundPayment(targetPayment.id, {
+        reason: refundReason.trim(),
+      });
+      adminToast.success(
+        "Payment Refunded",
+        `Payment ${targetPayment.invoiceNumber} has been marked as refunded.`,
+      );
+      setActiveAction(null);
+      setSelectedPayment(null);
+      await loadPayments();
+    } catch (err: any) {
+      adminToast.error("Refund Failed", err?.message || "Failed to refund payment.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDownloadReceipt = async (p: AdminPayment) => {
+    try {
+      adminToast.info("Preparing Receipt", "Generating and downloading PDF receipt...");
+      await adminService.downloadReceiptPdf(p.id, p.invoiceNumber);
+      adminToast.success("Downloaded", "Receipt PDF downloaded successfully.");
+    } catch (err: any) {
+      adminToast.error("Download Failed", err?.message || "Failed to download payment receipt.");
+    }
   };
 
   const handleResetFilters = () => {
@@ -253,13 +316,13 @@ export default function AdminPaymentsPage() {
                       {(search ||
                         statusFilter !== "ALL" ||
                         methodFilter !== "ALL") && (
-                        <button
-                          onClick={handleResetFilters}
-                          className="mt-2 inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
-                        >
-                          Clear Filters
-                        </button>
-                      )}
+                          <button
+                            onClick={handleResetFilters}
+                            className="mt-2 inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                          >
+                            Clear Filters
+                          </button>
+                        )}
                     </div>
                   </td>
                 </tr>
@@ -272,9 +335,8 @@ export default function AdminPaymentsPage() {
                   return (
                     <tr
                       key={p.id}
-                      className={`hover:bg-slate-50/80 transition-colors ${
-                        isPendingTransfer ? "bg-amber-50/20" : ""
-                      }`}
+                      className={`hover:bg-slate-50/80 transition-colors ${isPendingTransfer ? "bg-amber-50/20" : ""
+                        }`}
                     >
                       <td className="px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">
                         {p.invoiceNumber}
@@ -435,8 +497,8 @@ export default function AdminPaymentsPage() {
                     <span className="text-slate-700">
                       {drawerPayment.gatewayData.bankTransfer.depositDate
                         ? new Date(
-                            drawerPayment.gatewayData.bankTransfer.depositDate,
-                          ).toLocaleDateString()
+                          drawerPayment.gatewayData.bankTransfer.depositDate,
+                        ).toLocaleDateString()
                         : "N/A"}
                     </span>
                   </div>
@@ -470,43 +532,124 @@ export default function AdminPaymentsPage() {
               </h4>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() =>
-                    handleCustomAction(
-                      "Download Payment Receipt",
-                      "GET /api/admin/billing/payments/:paymentId/receipt",
-                      "Server-side receipt generation is not implemented in cyber7-backend.",
-                    )
-                  }
-                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c] cursor-pointer"
+                  disabled={drawerPayment.status !== "COMPLETED"}
+                  onClick={() => handleDownloadReceipt(drawerPayment)}
+                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Download Receipt
                 </button>
-                <button
-                  onClick={() =>
-                    handleCustomAction(
-                      "View Payment Audit Trail",
-                      "GET /api/admin/billing/payments/:paymentId/audit-trail",
-                      "Payment audit trail query is not yet exposed via platform admin API.",
-                    )
-                  }
-                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c] cursor-pointer"
-                >
-                  Audit Trail
-                </button>
+                {drawerPayment.status === "COMPLETED" && (
+                  <button
+                    onClick={() => handleRefundClick(drawerPayment)}
+                    className="rounded-xl border border-rose-200 bg-rose-50/50 p-2.5 text-center font-semibold text-rose-700 hover:bg-rose-100 focus:outline-hidden focus:ring-2 focus:ring-rose-500 cursor-pointer"
+                  >
+                    Refund Payment
+                  </button>
+                )}
+                {drawerPayment.status === "PENDING_VERIFICATION" && (
+                  <>
+                    <button
+                      onClick={() => handleApproveClick(drawerPayment)}
+                      className="rounded-xl bg-[#88da1c] p-2.5 text-center font-bold text-slate-950 hover:bg-[#78c418] cursor-pointer"
+                    >
+                      Approve Transfer
+                    </button>
+                    <button
+                      onClick={() => handleRejectClick(drawerPayment)}
+                      className="rounded-xl border border-rose-200 bg-white p-2.5 text-center font-semibold text-rose-700 hover:bg-rose-50 cursor-pointer"
+                    >
+                      Reject Transfer
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
         )}
       </AdminDetailDrawer>
 
-      {/* Unimplemented / Blocked Mutation Modal */}
-      <AdminUnimplementedModal
-        open={mutationModalOpen}
-        onClose={() => setMutationModalOpen(false)}
-        actionTitle={mutationActionTitle}
-        missingEndpoint={missingEndpoint}
-        explanation={mutationExplanation}
-      />
+      {/* Approve Bank Transfer Modal */}
+      <AdminConfirmDialog
+        open={activeAction === "APPROVE"}
+        onClose={() => setActiveAction(null)}
+        onConfirm={handleConfirmApprove}
+        title="Approve Bank Transfer"
+        description={`Are you sure you want to approve this deposit of BDT ${targetPayment?.amount.toLocaleString()} for workspace "${targetPayment?.workspaceName}"? This will activate their subscription immediately.`}
+        confirmText="Approve Deposit"
+        isLoading={actionLoading}
+        variant="primary"
+      >
+        <div className="space-y-3 mt-3 text-xs">
+          <div>
+            <label className="font-semibold text-slate-700">Admin Verification Notes (Optional)</label>
+            <input
+              type="text"
+              value={adminNotes}
+              onChange={(e) => setAdminNotes(e.target.value)}
+              placeholder="e.g., Bank statement verified against slip"
+              className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+            />
+          </div>
+          {(targetPayment?.amount || 0) >= 50000 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900">
+              <label className="font-bold">High-Value Transfer Step-Up Token (Required for &gt;= 50,000 BDT)</label>
+              <input
+                type="text"
+                value={stepUpToken}
+                onChange={(e) => setStepUpToken(e.target.value)}
+                placeholder="Enter step-up TOTP authorization token"
+                className="mt-1 w-full rounded-xl border border-amber-300 bg-white p-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-mono"
+              />
+            </div>
+          )}
+        </div>
+      </AdminConfirmDialog>
+
+      {/* Reject Bank Transfer Modal */}
+      <AdminConfirmDialog
+        open={activeAction === "REJECT"}
+        onClose={() => setActiveAction(null)}
+        onConfirm={handleConfirmReject}
+        title="Reject Bank Transfer"
+        description={`Reject deposit of BDT ${targetPayment?.amount.toLocaleString()} for workspace "${targetPayment?.workspaceName}". Please provide a clear explanation.`}
+        confirmText="Reject Transfer"
+        isLoading={actionLoading}
+        variant="destructive"
+      >
+        <div className="mt-3 text-xs">
+          <label className="font-semibold text-slate-700">Rejection Reason *</label>
+          <textarea
+            rows={3}
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="e.g., Deposit reference number not found in bank statement"
+            className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+          />
+        </div>
+      </AdminConfirmDialog>
+
+      {/* Refund Payment Modal */}
+      <AdminConfirmDialog
+        open={activeAction === "REFUND"}
+        onClose={() => setActiveAction(null)}
+        onConfirm={handleConfirmRefund}
+        title="Refund Completed Payment"
+        description={`Issue a refund for payment #${targetPayment?.invoiceNumber} (${targetPayment?.workspaceName}) of BDT ${targetPayment?.amount.toLocaleString()}. This action updates the financial ledger.`}
+        confirmText="Confirm Refund"
+        isLoading={actionLoading}
+        variant="destructive"
+      >
+        <div className="mt-3 text-xs">
+          <label className="font-semibold text-slate-700">Refund Reason *</label>
+          <textarea
+            rows={3}
+            value={refundReason}
+            onChange={(e) => setRefundReason(e.target.value)}
+            placeholder="Reason for issuing this refund"
+            className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+          />
+        </div>
+      </AdminConfirmDialog>
     </div>
   );
 }

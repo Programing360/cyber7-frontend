@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  AlertCircle,
   ArrowDown,
   ArrowRight,
   Bot,
@@ -11,10 +12,12 @@ import {
   Clock3,
   Copy,
   GitBranch,
+  Loader2,
   MessageSquare,
   MoreHorizontal,
   Plus,
   Power,
+  RefreshCw,
   Search,
   Settings2,
   Sparkles,
@@ -26,20 +29,53 @@ import {
 } from "lucide-react";
 
 import DashboardLayout from "@/src/component/dashboard/dashboard-layout";
+import { useWorkspace } from "@/src/context/workspace-context";
+import { automationService } from "@/src/services/automation-service";
+import type {
+  AutomationActionType,
+  AutomationRuleItem,
+  AutomationTriggerType,
+  CreateAutomationRulePayload,
+} from "@/src/types/api";
 
-import {
-  Automation,
-  AutomationAction,
-  AutomationStatus,
-  AutomationTrigger,
-  initialAutomations,
-} from "@/src/data/mock/automations";
+export type AutomationStatus = "Active" | "Inactive";
+
+export type AutomationTrigger =
+  | "Incoming Message"
+  | "Keyword Match"
+  | "New Contact"
+  | "No Reply"
+  | "Away Hours"
+  | "Order Received";
+
+export type AutomationAction =
+  | "Send Message"
+  | "Assign Agent"
+  | "Add Tag"
+  | "Notify Team"
+  | "Send Template";
+
+export interface Automation {
+  id: string;
+  name: string;
+  description: string;
+  trigger: AutomationTrigger;
+  condition: string;
+  action: AutomationAction;
+  actionValue: string;
+  status: AutomationStatus;
+  executions: number;
+  lastExecuted: string;
+  createdAt: string;
+  backendRule?: AutomationRuleItem;
+}
 
 const triggers: AutomationTrigger[] = [
   "Incoming Message",
   "Keyword Match",
   "New Contact",
   "No Reply",
+  "Away Hours",
   "Order Received",
 ];
 
@@ -52,11 +88,12 @@ const actions: AutomationAction[] = [
 ];
 
 const triggerDescriptions: Record<AutomationTrigger, string> = {
-  "Incoming Message": "Runs when a customer sends a message.",
-  "Keyword Match": "Runs when a message contains a matching keyword.",
-  "New Contact": "Runs when a new contact is created.",
-  "No Reply": "Runs when a conversation remains unanswered.",
-  "Order Received": "Runs when a new order is received.",
+  "Incoming Message": "Runs when a customer sends an inbound message.",
+  "Keyword Match": "Runs when a message contains specific matching keywords.",
+  "New Contact": "Runs when a new customer contact is registered.",
+  "No Reply": "Runs when a customer conversation remains unanswered.",
+  "Away Hours": "Runs when a message is received outside business hours.",
+  "Order Received": "Runs when a customer places or confirms an order.",
 };
 
 const actionIcons: Record<AutomationAction, typeof MessageSquare> = {
@@ -78,9 +115,152 @@ const emptyForm = {
 
 type AutomationForm = typeof emptyForm;
 
+function formatRelativeTime(dateString?: string): string {
+  if (!dateString) return "Never";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "Never";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffSec = Math.max(0, Math.floor(diffMs / 1000));
+
+  if (diffSec < 60) return "Just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return date.toLocaleDateString();
+}
+
+function mapTriggerToBackend(t: AutomationTrigger): AutomationTriggerType {
+  switch (t) {
+    case "New Contact":
+      return "NEW_CONTACT";
+    case "Keyword Match":
+      return "KEYWORD_MATCH";
+    case "No Reply":
+      return "NO_REPLY";
+    case "Away Hours":
+    case "Order Received":
+      return "AWAY_HOURS";
+    case "Incoming Message":
+    default:
+      return "INCOMING_MESSAGE";
+  }
+}
+
+function mapTriggerFromBackend(t: AutomationTriggerType): AutomationTrigger {
+  switch (t) {
+    case "NEW_CONTACT":
+      return "New Contact";
+    case "KEYWORD_MATCH":
+      return "Keyword Match";
+    case "NO_REPLY":
+      return "No Reply";
+    case "AWAY_HOURS":
+      return "Away Hours";
+    case "INCOMING_MESSAGE":
+    default:
+      return "Incoming Message";
+  }
+}
+
+function mapActionToBackend(a: AutomationAction): AutomationActionType {
+  switch (a) {
+    case "Send Message":
+      return "SEND_MESSAGE";
+    case "Send Template":
+      return "SEND_TEMPLATE";
+    case "Assign Agent":
+      return "ASSIGN_AGENT";
+    case "Add Tag":
+      return "ADD_TAGS";
+    case "Notify Team":
+    default:
+      return "CREATE_TICKET";
+  }
+}
+
+function mapActionFromBackend(a: AutomationActionType): AutomationAction {
+  switch (a) {
+    case "SEND_MESSAGE":
+      return "Send Message";
+    case "SEND_TEMPLATE":
+      return "Send Template";
+    case "ASSIGN_AGENT":
+      return "Assign Agent";
+    case "ADD_TAGS":
+      return "Add Tag";
+    case "CREATE_TICKET":
+    default:
+      return "Notify Team";
+  }
+}
+
+function transformRuleToUI(rule: AutomationRuleItem): Automation {
+  const triggerUI = mapTriggerFromBackend(rule.trigger);
+  const actionUI = mapActionFromBackend(rule.action);
+
+  let condition = "";
+  if (
+    rule.trigger === "KEYWORD_MATCH" &&
+    rule.keywords &&
+    rule.keywords.length > 0
+  ) {
+    condition = `Keywords: ${rule.keywords.join(", ")}`;
+  } else if (rule.trigger === "NEW_CONTACT") {
+    condition = "New contact registered";
+  } else if (rule.trigger === "INCOMING_MESSAGE") {
+    condition = "Inbound message received";
+  } else if (rule.trigger === "AWAY_HOURS") {
+    condition = "Outside business hours";
+  } else if (rule.trigger === "NO_REPLY") {
+    condition = "No agent reply within window";
+  }
+
+  let actionValue = "";
+  if (rule.action === "SEND_MESSAGE") {
+    actionValue = rule.actionConfig?.messageBody || "";
+  } else if (rule.action === "SEND_TEMPLATE") {
+    actionValue = rule.actionConfig?.templateName || "";
+  } else if (rule.action === "ADD_TAGS") {
+    actionValue = rule.actionConfig?.tags?.join(", ") || "";
+  } else if (rule.action === "ASSIGN_AGENT") {
+    actionValue = rule.actionConfig?.assignedUserId
+      ? String(rule.actionConfig.assignedUserId)
+      : "Auto-assigned Agent";
+  } else if (rule.action === "CREATE_TICKET") {
+    actionValue = rule.actionConfig?.ticketPriority
+      ? `Ticket (${rule.actionConfig.ticketPriority})`
+      : "Support Ticket";
+  }
+
+  return {
+    id: rule._id,
+    name: rule.name,
+    description: rule.description || "",
+    trigger: triggerUI,
+    condition: condition || "Matches trigger criteria",
+    action: actionUI,
+    actionValue: actionValue || "Configured action",
+    status: rule.isActive ? "Active" : "Inactive",
+    executions: rule.executionsCount || 0,
+    lastExecuted: formatRelativeTime(rule.lastExecutedAt),
+    createdAt: rule.createdAt ? rule.createdAt.slice(0, 10) : "",
+    backendRule: rule,
+  };
+}
+
 export default function AutomationsPage() {
-  const [automations, setAutomations] =
-    useState<Automation[]>(initialAutomations);
+  const { activeWorkspace, isLoading: isWorkspaceLoading } = useWorkspace();
+
+  const [automations, setAutomations] = useState<Automation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | AutomationStatus>(
@@ -93,6 +273,35 @@ export default function AutomationsPage() {
   const [notice, setNotice] = useState("");
 
   const [form, setForm] = useState<AutomationForm>(emptyForm);
+
+  const loadAutomations = useCallback(async () => {
+    if (!activeWorkspace?.id) {
+      setAutomations([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await automationService.getAutomationRules(
+        activeWorkspace.id,
+      );
+      const mapped = data.map(transformRuleToUI);
+      setAutomations(mapped);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to load automations";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeWorkspace]);
+
+  useEffect(() => {
+    loadAutomations();
+  }, [loadAutomations]);
 
   const filteredAutomations = useMemo(() => {
     const query = search.toLowerCase().trim();
@@ -136,11 +345,22 @@ export default function AutomationsPage() {
   const openEdit = (automation: Automation) => {
     setEditingId(automation.id);
 
+    // Extract clean condition keywords if keyword match
+    let conditionText = automation.condition;
+    if (
+      automation.backendRule?.keywords &&
+      automation.backendRule.keywords.length > 0
+    ) {
+      conditionText = automation.backendRule.keywords.join(", ");
+    } else if (conditionText.startsWith("Keywords: ")) {
+      conditionText = conditionText.replace("Keywords: ", "");
+    }
+
     setForm({
       name: automation.name,
       description: automation.description,
       trigger: automation.trigger,
-      condition: automation.condition,
+      condition: conditionText,
       action: automation.action,
       actionValue: automation.actionValue,
     });
@@ -155,7 +375,12 @@ export default function AutomationsPage() {
     setForm({ ...emptyForm });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!activeWorkspace?.id) {
+      setNotice("No active workspace selected.");
+      return;
+    }
+
     if (!form.name.trim()) {
       setNotice("Please enter an automation name.");
       return;
@@ -166,8 +391,8 @@ export default function AutomationsPage() {
       return;
     }
 
-    if (!form.condition.trim()) {
-      setNotice("Please enter a condition.");
+    if (!form.condition.trim() && form.trigger === "Keyword Match") {
+      setNotice("Please enter at least one matching keyword for this trigger.");
       return;
     }
 
@@ -181,71 +406,175 @@ export default function AutomationsPage() {
       return;
     }
 
-    if (editingId) {
-      setAutomations((previous) =>
-        previous.map((automation) =>
-          automation.id === editingId
-            ? {
-                ...automation,
-                ...form,
-              }
-            : automation,
-        ),
-      );
+    setSaving(true);
 
-      setNotice("Automation updated in this demo.");
-    } else {
-      const newAutomation: Automation = {
-        id: `auto-${Date.now()}`,
-        ...form,
-        status: "Inactive",
-        executions: 0,
-        lastExecuted: "Never",
-        createdAt: new Date().toISOString().slice(0, 10),
-      };
+    try {
+      const backendTrigger = mapTriggerToBackend(form.trigger);
+      const backendAction = mapActionToBackend(form.action);
 
-      setAutomations((previous) => [newAutomation, ...previous]);
-      setNotice("Automation created in this demo.");
+      let keywords: string[] = [];
+      if (backendTrigger === "KEYWORD_MATCH") {
+        const raw = form.condition
+          .replace(/^message\s+contains:\s*/i, "")
+          .replace(/^keywords:\s*/i, "");
+        keywords = raw
+          .split(",")
+          .map((k) => k.trim().toLowerCase())
+          .filter(Boolean);
+      }
+
+      const actionConfig: CreateAutomationRulePayload["actionConfig"] = {};
+      if (backendAction === "SEND_MESSAGE") {
+        actionConfig.messageBody = form.actionValue.trim();
+      } else if (backendAction === "SEND_TEMPLATE") {
+        actionConfig.templateName = form.actionValue.trim();
+        actionConfig.templateLanguage = "en";
+      } else if (backendAction === "ADD_TAGS") {
+        actionConfig.tags = form.actionValue
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
+      } else if (backendAction === "ASSIGN_AGENT") {
+        // If it's a mongo object ID, pass it; otherwise store in text or omit
+        if (/^[0-9a-fA-F]{24}$/.test(form.actionValue.trim())) {
+          actionConfig.assignedUserId = form.actionValue.trim();
+        }
+      } else if (backendAction === "CREATE_TICKET") {
+        actionConfig.ticketPriority = "MEDIUM";
+      }
+
+      if (editingId) {
+        const updated = await automationService.updateAutomationRule(
+          activeWorkspace.id,
+          editingId,
+          {
+            name: form.name.trim(),
+            description: form.description.trim(),
+            trigger: backendTrigger,
+            keywords,
+            matchType: "CONTAINS",
+            action: backendAction,
+            actionConfig,
+          },
+        );
+
+        setAutomations((previous) =>
+          previous.map((item) =>
+            item.id === editingId ? transformRuleToUI(updated) : item,
+          ),
+        );
+
+        setNotice("Automation rule updated successfully.");
+      } else {
+        const created = await automationService.createAutomationRule(
+          activeWorkspace.id,
+          {
+            name: form.name.trim(),
+            description: form.description.trim(),
+            trigger: backendTrigger,
+            keywords,
+            matchType: "CONTAINS",
+            action: backendAction,
+            actionConfig,
+            isActive: true,
+          },
+        );
+
+        const newUI = transformRuleToUI(created);
+        setAutomations((previous) => [newUI, ...previous]);
+        setNotice("Automation rule created and activated successfully.");
+      }
+
+      closeBuilder();
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to save automation rule";
+      setNotice(`Error: ${msg}`);
+    } finally {
+      setSaving(false);
     }
-
-    closeBuilder();
   };
 
-  const toggleStatus = (id: string) => {
+  const toggleStatus = async (id: string) => {
+    if (!activeWorkspace?.id) return;
+    const target = automations.find((item) => item.id === id);
+    if (!target) return;
+
+    const nextActive = target.status !== "Active";
+    const nextStatus: AutomationStatus = nextActive ? "Active" : "Inactive";
+
+    // Optimistic UI update
     setAutomations((previous) =>
-      previous.map((automation) =>
-        automation.id === id
-          ? {
-              ...automation,
-              status: automation.status === "Active" ? "Inactive" : "Active",
-            }
-          : automation,
+      previous.map((item) =>
+        item.id === id ? { ...item, status: nextStatus } : item,
       ),
     );
-
-    setNotice("Demo status updated. No real automation was triggered.");
     setMenuId(null);
+
+    try {
+      const updated = await automationService.toggleAutomationRule(
+        activeWorkspace.id,
+        id,
+        nextActive,
+      );
+      setAutomations((previous) =>
+        previous.map((item) =>
+          item.id === id ? transformRuleToUI(updated) : item,
+        ),
+      );
+      setNotice(
+        `Rule turned ${nextActive ? "ON (Active)" : "OFF (Inactive)"}.`,
+      );
+    } catch (err: unknown) {
+      // Revert on error
+      setAutomations((previous) =>
+        previous.map((item) =>
+          item.id === id ? { ...item, status: target.status } : item,
+        ),
+      );
+      const msg =
+        err instanceof Error ? err.message : "Failed to toggle status";
+      setNotice(`Error: ${msg}`);
+    }
   };
 
-  const duplicateAutomation = (automation: Automation) => {
-    const copy: Automation = {
-      ...automation,
-      id: `auto-${Date.now()}`,
-      name: `${automation.name} (Copy)`,
-      status: "Inactive",
-      executions: 0,
-      lastExecuted: "Never",
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
+  const duplicateAutomation = async (automation: Automation) => {
+    if (!activeWorkspace?.id || !automation.backendRule) return;
 
-    setAutomations((previous) => [copy, ...previous]);
     setMenuId(null);
-    setNotice("Automation duplicated in this demo.");
+    setSaving(true);
+
+    try {
+      const created = await automationService.createAutomationRule(
+        activeWorkspace.id,
+        {
+          name: `${automation.name} (Copy)`,
+          description: automation.description,
+          trigger: automation.backendRule.trigger,
+          keywords: automation.backendRule.keywords || [],
+          matchType: automation.backendRule.matchType || "CONTAINS",
+          action: automation.backendRule.action,
+          actionConfig: automation.backendRule.actionConfig || {},
+          isActive: false,
+        },
+      );
+
+      const uiItem = transformRuleToUI(created);
+      setAutomations((previous) => [uiItem, ...previous]);
+      setNotice(`Duplicated "${automation.name}" as inactive copy.`);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to duplicate rule";
+      setNotice(`Error: ${msg}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const deleteAutomation = (id: string) => {
+  const deleteAutomation = async (id: string) => {
+    if (!activeWorkspace?.id) return;
+
     const automation = automations.find((item) => item.id === id);
-
     if (!automation) return;
 
     const confirmed = window.confirm(
@@ -257,10 +586,22 @@ export default function AutomationsPage() {
       return;
     }
 
+    setMenuId(null);
+
+    // Optimistic removal
+    const backup = [...automations];
     setAutomations((previous) => previous.filter((item) => item.id !== id));
 
-    setMenuId(null);
-    setNotice("Automation removed from this demo.");
+    try {
+      await automationService.deleteAutomationRule(activeWorkspace.id, id);
+      setNotice(`Automation "${automation.name}" deleted successfully.`);
+    } catch (err: unknown) {
+      // Revert on failure
+      setAutomations(backup);
+      const msg =
+        err instanceof Error ? err.message : "Failed to delete automation";
+      setNotice(`Error: ${msg}`);
+    }
   };
 
   return (
@@ -271,8 +612,8 @@ export default function AutomationsPage() {
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <div className="mb-2 flex items-center gap-2 text-sm font-medium text-emerald-700">
-                {/* <Zap size={16} /> */}
-                Workflow automation
+                <Zap size={16} />
+                WhatsApp Workflow Automations
               </div>
 
               <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
@@ -280,63 +621,81 @@ export default function AutomationsPage() {
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                Automate repetitive customer conversations and build smarter
-                WhatsApp workflows.
+                Automate repetitive customer conversations, instant replies, and
+                lead routing in real-time.
               </p>
             </div>
 
-            <button
-              onClick={openCreate}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#88da1c] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
-            >
-              <Plus size={18} />
-              Create automation
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={loadAutomations}
+                disabled={loading}
+                title="Refresh automations"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                <RefreshCw
+                  size={16}
+                  className={loading ? "animate-spin" : ""}
+                />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+
+              <button
+                onClick={openCreate}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 hover:scale-105 duration-300 "
+              >
+                <Plus size={18} />
+                Create automation
+              </button>
+            </div>
           </div>
 
-          {/* Demo notice */}
-          {/* <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <div className="rounded-xl bg-amber-100 p-2 text-amber-700">
-              <Settings2 size={18} />
+          {/* Error Banner */}
+          {error && (
+            <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+              <AlertCircle size={20} className="mt-0.5 shrink-0 text-red-600" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-900">
+                  Failed to load automations
+                </p>
+                <p className="mt-0.5 text-sm text-red-700">{error}</p>
+              </div>
+              <button
+                onClick={loadAutomations}
+                className="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-200"
+              >
+                Retry
+              </button>
             </div>
-
-            <div>
-              <p className="text-sm font-semibold text-amber-900">Demo mode</p>
-              <p className="mt-1 text-sm leading-5 text-amber-800">
-                Changes are stored in the current page state only. Triggers and
-                actions are visual configurations and are not connected to a
-                backend or WhatsApp API.
-              </p>
-            </div>
-          </div> */}
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Total automations"
-              value={automations.length.toString()}
-              detail="All configured workflows"
+              value={loading ? "—" : automations.length.toString()}
+              detail="All configured workspace rules"
               icon={<GitBranch size={20} />}
             />
 
             <StatCard
               label="Active automations"
-              value={activeCount.toString()}
-              detail="Enabled in demo state"
+              value={loading ? "—" : activeCount.toString()}
+              detail="Currently active on incoming messages"
               icon={<Power size={20} />}
             />
 
             <StatCard
               label="Total executions"
-              value={totalExecutions.toLocaleString()}
-              detail="Sample historical data"
+              value={loading ? "—" : totalExecutions.toLocaleString()}
+              detail="Recorded trigger executions"
               icon={<Activity size={20} />}
             />
 
             <StatCard
-              label="Automation health"
-              value="Demo"
-              detail="Live monitoring not connected"
+              label="Automation engine"
+              value={loading ? "—" : activeWorkspace ? "Live" : "No Workspace"}
+              detail="Meta Cloud API webhook listener"
               icon={<Bot size={20} />}
             />
           </div>
@@ -349,7 +708,7 @@ export default function AutomationsPage() {
                   Your workflows
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Manage your automated customer journeys.
+                  Manage your automated customer journeys and routing rules.
                 </p>
               </div>
 
@@ -391,32 +750,46 @@ export default function AutomationsPage() {
               </div>
             </div>
 
-            {filteredAutomations.length === 0 ? (
+            {loading || isWorkspaceLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                <Loader2 size={36} className="animate-spin text-emerald-600" />
+                <p className="mt-4 text-sm font-medium text-slate-600">
+                  Loading automation workflows...
+                </p>
+              </div>
+            ) : filteredAutomations.length === 0 ? (
               <div className="px-5 py-16 text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
                   <GitBranch size={24} />
                 </div>
 
                 <h3 className="mt-4 font-semibold text-slate-900">
-                  No automations found
+                  {automations.length === 0
+                    ? "No automation rules yet"
+                    : "No matching automations found"}
                 </h3>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Try a different search or create a new automation.
+                  {automations.length === 0
+                    ? "Create your first automated reply or routing rule to engage customers automatically."
+                    : "Try a different search query or filter."}
                 </p>
 
-                <button
-                  onClick={openCreate}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
-                >
-                  <Plus size={16} />
-                  Create automation
-                </button>
+                {automations.length === 0 && (
+                  <button
+                    onClick={openCreate}
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+                  >
+                    <Plus size={16} />
+                    Create automation
+                  </button>
+                )}
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {filteredAutomations.map((automation) => {
-                  const ActionIcon = actionIcons[automation.action];
+                  const ActionIcon =
+                    actionIcons[automation.action] || MessageSquare;
 
                   return (
                     <div
@@ -453,9 +826,11 @@ export default function AutomationsPage() {
                               </span>
                             </div>
 
-                            <p className="mt-1 max-w-xl text-sm leading-5 text-slate-500">
-                              {automation.description}
-                            </p>
+                            {automation.description && (
+                              <p className="mt-1 max-w-xl text-sm leading-5 text-slate-500">
+                                {automation.description}
+                              </p>
+                            )}
 
                             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
                               <span className="inline-flex items-center gap-1.5">
@@ -464,8 +839,8 @@ export default function AutomationsPage() {
                               </span>
 
                               <span>
-                                {automation.executions.toLocaleString()} sample
-                                runs
+                                {automation.executions.toLocaleString()}{" "}
+                                executions
                               </span>
                             </div>
                           </div>
@@ -584,41 +959,46 @@ export default function AutomationsPage() {
                 Showing {filteredAutomations.length} of {automations.length}{" "}
                 automations
               </span>
-              <span>Execution counts are sample data.</span>
+              <span>
+                Workflows execute automatically via Meta WhatsApp Cloud API
+                webhooks.
+              </span>
             </div>
           </section>
 
-          {/* Builder preview */}
+          {/* Builder preview info section */}
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center gap-2">
-              {/* <Sparkles size={19} className="text-emerald-600" /> */}
-              <h2 className="font-bold text-slate-900">How a workflow works</h2>
+              <Sparkles size={19} className="text-emerald-600" />
+              <h2 className="font-bold text-slate-900">
+                How WhatsApp Automations Work
+              </h2>
             </div>
 
             <p className="mt-1 text-sm text-slate-500">
-              Every automation follows a simple trigger → condition → action
-              structure.
+              Every automation follows a reliable Trigger → Condition → Action
+              pipeline executing atomically within the 24h customer window.
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               <ExampleStep
                 number="01"
                 title="Trigger"
-                description="An event occurs, such as a new customer sending a message."
+                description="An inbound webhook event occurs, such as a customer sending a message or registering."
                 icon={<Zap size={21} />}
               />
 
               <ExampleStep
                 number="02"
                 title="Condition"
-                description="The system checks whether the message matches a configured rule."
+                description="The engine validates keywords, business operating hours, or message intervals."
                 icon={<GitBranch size={21} />}
               />
 
               <ExampleStep
                 number="03"
                 title="Action"
-                description="The workflow can send a reply, assign an agent, or add a tag."
+                description="The system sends an automated response, adds contact tags, creates a support ticket, or routes to an agent."
                 icon={<MessageSquare size={21} />}
               />
             </div>
@@ -626,7 +1006,7 @@ export default function AutomationsPage() {
         </div>
       </div>
 
-      {/* Create / edit modal */}
+      {/* Create / Edit Modal */}
       {showBuilder && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 backdrop-blur-sm sm:items-center sm:p-5"
@@ -638,7 +1018,7 @@ export default function AutomationsPage() {
             <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white p-5 sm:p-6">
               <div>
                 <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
-                  {/* <Sparkles size={16} /> */}
+                  <Sparkles size={16} />
                   Workflow builder
                 </div>
 
@@ -647,7 +1027,8 @@ export default function AutomationsPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Configure the trigger, condition and action.
+                  Configure the trigger, matching conditions, and executed
+                  WhatsApp action.
                 </p>
               </div>
 
@@ -727,11 +1108,12 @@ export default function AutomationsPage() {
 
               {/* Condition */}
               <div className="rounded-2xl border border-violet-200 bg-violet-50/40 p-4 sm:p-5">
-                <SectionHeading number="03" title="Add a condition" />
+                <SectionHeading number="03" title="Condition / Keywords" />
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Describe the rule that must be satisfied before the action
-                  runs.
+                  {form.trigger === "Keyword Match"
+                    ? "Enter comma-separated keywords to match (e.g. price, cost, quote, order)."
+                    : "Optional condition notes or routing criteria for this trigger."}
                 </p>
 
                 <input
@@ -739,7 +1121,11 @@ export default function AutomationsPage() {
                   onChange={(event) =>
                     updateForm("condition", event.target.value)
                   }
-                  placeholder="e.g. Message contains: price, cost"
+                  placeholder={
+                    form.trigger === "Keyword Match"
+                      ? "price, cost, quote, catalog"
+                      : "e.g. First contact only / Business hours"
+                  }
                   className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-violet-500"
                 />
               </div>
@@ -767,7 +1153,7 @@ export default function AutomationsPage() {
                 </select>
 
                 <label className="mb-2 mt-4 block text-sm font-semibold text-slate-700">
-                  Action details
+                  Action details <span className="text-red-500">*</span>
                 </label>
 
                 <textarea
@@ -778,14 +1164,14 @@ export default function AutomationsPage() {
                   rows={3}
                   placeholder={
                     form.action === "Send Message"
-                      ? "Enter the message to send..."
+                      ? "Enter the message to send automatically..."
                       : form.action === "Assign Agent"
-                        ? "Enter the agent or team name..."
+                        ? "Enter user ID or agent tag..."
                         : form.action === "Add Tag"
-                          ? "Enter the tag name..."
+                          ? "Enter comma-separated tags (e.g. lead, interested, vip)..."
                           : form.action === "Notify Team"
-                            ? "Enter the team to notify..."
-                            : "Enter the approved template name..."
+                            ? "Enter ticket notes or notification channel..."
+                            : "Enter the approved Meta template name (e.g. hello_world)..."
                   }
                   className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-500"
                 />
@@ -813,7 +1199,7 @@ export default function AutomationsPage() {
 
                   <PreviewRow
                     label="Condition"
-                    value={form.condition || "Your condition will appear here"}
+                    value={form.condition || "Default trigger criteria"}
                     icon={<GitBranch size={16} />}
                   />
 
@@ -835,24 +1221,35 @@ export default function AutomationsPage() {
             <div className="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-slate-100 bg-white p-5 sm:flex-row sm:justify-end sm:p-6">
               <button
                 onClick={closeBuilder}
-                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                disabled={saving}
+                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
                 Cancel
               </button>
 
               <button
                 onClick={handleSave}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
               >
-                <Check size={17} />
-                {editingId ? "Save changes" : "Create automation"}
+                {saving ? (
+                  <>
+                    <Loader2 size={17} className="animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check size={17} />
+                    {editingId ? "Save changes" : "Create automation"}
+                  </>
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Toast */}
+      {/* Toast Notification */}
       {notice && (
         <div className="fixed bottom-5 right-5 z-[60] flex max-w-sm items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
           <div className="mt-0.5 rounded-full bg-emerald-50 p-1 text-emerald-700">
@@ -886,7 +1283,7 @@ function StatCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:scale-105 transition-all duration-300">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-slate-500">{label}</p>

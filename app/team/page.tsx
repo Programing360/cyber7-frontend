@@ -109,7 +109,8 @@ function TeamPageContent() {
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingMember, setEditingMember] = useState<WorkspaceMemberItem | null>(null);
+  const [editingMember, setEditingMember] =
+    useState<WorkspaceMemberItem | null>(null);
   const [form, setForm] = useState<MemberForm>(emptyForm);
   const [formError, setFormError] = useState("");
   const [toast, setToast] = useState("");
@@ -117,7 +118,8 @@ function TeamPageContent() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   // Invitation token handling from URL query params
-  const inviteToken = searchParams.get("token") || searchParams.get("invitationToken");
+  const inviteToken =
+    searchParams.get("token") || searchParams.get("invitationToken");
   const [acceptingInvite, setAcceptingInvite] = useState(false);
 
   function showToast(message: string) {
@@ -174,7 +176,10 @@ function TeamPageContent() {
       await refreshWorkspaces();
       await loadTeamData();
     } catch (err: unknown) {
-      const msg = err instanceof ApiClientError ? err.message : "Failed to accept invitation";
+      const msg =
+        err instanceof ApiClientError
+          ? err.message
+          : "Failed to accept invitation";
       showToast(msg);
     } finally {
       setAcceptingInvite(false);
@@ -198,7 +203,8 @@ function TeamPageContent() {
         email.toLowerCase().includes(query);
 
       const matchesRole = roleFilter === "ALL" || member.role === roleFilter;
-      const matchesStatus = statusFilter === "ALL" || member.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "ALL" || member.status === statusFilter;
 
       return matchesSearch && matchesRole && matchesStatus;
     });
@@ -211,15 +217,19 @@ function TeamPageContent() {
       const matchesSearch =
         !query ||
         inv.email.toLowerCase().includes(query) ||
-        (inv.invitedBy?.name && inv.invitedBy.name.toLowerCase().includes(query));
+        (inv.invitedBy?.name &&
+          inv.invitedBy.name.toLowerCase().includes(query));
       const matchesRole = roleFilter === "ALL" || inv.role === roleFilter;
       return matchesSearch && matchesRole;
     });
   }, [invitations, search, roleFilter]);
 
   const activeCount = members.filter((m) => m.status === "ACTIVE").length;
-  const adminCount = members.filter((m) => m.role === "ADMIN" || m.role === "OWNER").length;
+  const adminCount = members.filter(
+    (m) => m.role === "ADMIN" || m.role === "OWNER",
+  ).length;
   const agentCount = members.filter((m) => m.role === "AGENT").length;
+  // console.log(filteredInvitations, agentCount);
 
   function openCreateModal() {
     setEditingMember(null);
@@ -306,7 +316,9 @@ function TeamPageContent() {
       if (err instanceof ApiClientError) {
         setFormError(err.message);
       } else {
-        setFormError("Action failed. Please verify your permissions and try again.");
+        setFormError(
+          "Action failed. Please verify your permissions and try again.",
+        );
       }
     } finally {
       setIsSubmitting(false);
@@ -339,7 +351,10 @@ function TeamPageContent() {
         nextStatus === "ACTIVE" ? "Member reactivated." : "Member suspended.",
       );
     } catch (err: unknown) {
-      const msg = err instanceof ApiClientError ? err.message : "Failed to update member status";
+      const msg =
+        err instanceof ApiClientError
+          ? err.message
+          : "Failed to update member status";
       showToast(msg);
       setOpenMenuId(null);
     }
@@ -362,7 +377,8 @@ function TeamPageContent() {
       setOpenMenuId(null);
       showToast("Team member removed from workspace.");
     } catch (err: unknown) {
-      const msg = err instanceof ApiClientError ? err.message : "Failed to remove member";
+      const msg =
+        err instanceof ApiClientError ? err.message : "Failed to remove member";
       showToast(msg);
       setOpenMenuId(null);
     }
@@ -381,14 +397,17 @@ function TeamPageContent() {
       setInvitations((prev) => prev.filter((i) => i._id !== invitation._id));
       showToast("Invitation revoked successfully.");
     } catch (err: unknown) {
-      const msg = err instanceof ApiClientError ? err.message : "Failed to revoke invitation";
+      const msg =
+        err instanceof ApiClientError
+          ? err.message
+          : "Failed to revoke invitation";
       showToast(msg);
     }
   }
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-[1400px] space-y-7">
+      <div className="mx-auto max-w-[1400px] space-y-7 p-4">
         {/* Invitation Token Alert if user opened an invitation link */}
         {inviteToken && (
           <div className="flex items-center justify-between gap-4 rounded-2xl border border-green-200 bg-green-50 p-4 shadow-sm">
@@ -399,7 +418,8 @@ function TeamPageContent() {
                   Workspace Invitation Received
                 </p>
                 <p className="text-xs text-green-800">
-                  You have been invited to join a team workspace. Click accept to activate your membership.
+                  You have been invited to join a team workspace. Click accept
+                  to activate your membership.
                 </p>
               </div>
             </div>
@@ -436,7 +456,8 @@ function TeamPageContent() {
               Team Management
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              Manage your workspace members, invite collaborators, and administer role permissions.
+              Manage your workspace members, invite collaborators, and
+              administer role permissions.
             </p>
           </div>
 
@@ -448,7 +469,10 @@ function TeamPageContent() {
               className="rounded-xl border border-slate-200 p-2.5 text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
               title="Refresh team data"
             >
-              <RefreshCw size={17} className={isLoading ? "animate-spin" : ""} />
+              <RefreshCw
+                size={17}
+                className={isLoading ? "animate-spin" : ""}
+              />
             </button>
 
             {isOwnerOrAdmin && (
@@ -474,7 +498,10 @@ function TeamPageContent() {
             <p className="mt-1 text-sm leading-5 text-green-900/80">
               You are signed in as{" "}
               <span className="font-semibold">{myRole || "MEMBER"}</span> of{" "}
-              <span className="font-semibold">{activeWorkspace?.name || "this workspace"}</span>.
+              <span className="font-semibold">
+                {activeWorkspace?.name || "this workspace"}
+              </span>
+              .
               {myRole === "OWNER"
                 ? " You have full administrative control to invite members, modify roles, and remove accounts."
                 : myRole === "ADMIN"
@@ -586,7 +613,11 @@ function TeamPageContent() {
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder={viewTab === "members" ? "Search members..." : "Search invites..."}
+                  placeholder={
+                    viewTab === "members"
+                      ? "Search members..."
+                      : "Search invites..."
+                  }
                   aria-label="Search"
                   className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-green-600 focus:ring-2 focus:ring-green-600/20"
                 />
@@ -600,7 +631,9 @@ function TeamPageContent() {
                   { label: "All roles", value: "ALL" },
                   { label: "Admin", value: "ADMIN" },
                   { label: "Agent", value: "AGENT" },
-                  ...(viewTab === "members" ? [{ label: "Owner", value: "OWNER" }] : []),
+                  ...(viewTab === "members"
+                    ? [{ label: "Owner", value: "OWNER" }]
+                    : []),
                 ]}
               />
 
@@ -647,14 +680,21 @@ function TeamPageContent() {
                     const canEdit =
                       !isSelf &&
                       !isTargetOwner &&
-                      (myRole === "OWNER" || (myRole === "ADMIN" && !isTargetAdmin));
+                      (myRole === "OWNER" ||
+                        (myRole === "ADMIN" && !isTargetAdmin));
 
                     return (
-                      <tr key={member.membershipId} className="transition hover:bg-slate-50/70">
+                      <tr
+                        key={member.membershipId}
+                        className="transition hover:bg-slate-50/70"
+                      >
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-blue-700">
-                              {getInitials(member.user?.name, member.user?.email)}
+                              {getInitials(
+                                member.user?.name,
+                                member.user?.email,
+                              )}
                             </div>
 
                             <div className="min-w-0">
@@ -688,7 +728,8 @@ function TeamPageContent() {
                         <td className="px-5 py-4">
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              statusStyles[member.status] || statusStyles.INACTIVE
+                              statusStyles[member.status] ||
+                              statusStyles.INACTIVE
                             }`}
                           >
                             <span
@@ -721,7 +762,9 @@ function TeamPageContent() {
                                   )
                                 }
                                 aria-label="Member options"
-                                aria-expanded={openMenuId === member.membershipId}
+                                aria-expanded={
+                                  openMenuId === member.membershipId
+                                }
                                 className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                               >
                                 <MoreHorizontal size={19} />
@@ -813,7 +856,10 @@ function TeamPageContent() {
 
                 <tbody className="divide-y divide-slate-100">
                   {filteredInvitations.map((inv) => (
-                    <tr key={inv._id} className="transition hover:bg-slate-50/70">
+                    <tr
+                      key={inv._id}
+                      className="transition hover:bg-slate-50/70"
+                    >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-50 text-sm font-bold text-amber-700">
@@ -921,7 +967,10 @@ function TeamPageContent() {
           >
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
               <div>
-                <h2 id="team-modal-title" className="text-lg font-bold text-slate-900">
+                <h2
+                  id="team-modal-title"
+                  className="text-lg font-bold text-slate-900"
+                >
                   {editingMember ? "Change Member Role" : "Invite Team Member"}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
@@ -987,7 +1036,9 @@ function TeamPageContent() {
                     }
                     className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-600/20"
                   >
-                    <option value="ADMIN">Admin (Invite & Manage Agents)</option>
+                    <option value="ADMIN">
+                      Admin (Invite & Manage Agents)
+                    </option>
                     <option value="AGENT">Agent (Handle Messaging)</option>
                   </select>
 
@@ -998,7 +1049,8 @@ function TeamPageContent() {
                 </div>
 
                 <p className="mt-2 text-xs leading-5 text-slate-500">
-                  Admins can manage team agents and invitations. Agents have read-only team permissions.
+                  Admins can manage team agents and invitations. Agents have
+                  read-only team permissions.
                 </p>
               </div>
 
@@ -1026,7 +1078,9 @@ function TeamPageContent() {
                   disabled={isSubmitting}
                   className="inline-flex items-center gap-2 rounded-xl bg-[#88da1c] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#76bb1c] disabled:opacity-50"
                 >
-                  {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+                  {isSubmitting && (
+                    <Loader2 size={16} className="animate-spin" />
+                  )}
                   {editingMember
                     ? "Update Role"
                     : isSubmitting

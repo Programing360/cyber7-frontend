@@ -22,7 +22,11 @@ export interface BillingPlan {
   features: string[];
 }
 
-export type PaymentMethod = "BKASH" | "CITY_BANK_CARD" | "CITY_BANK_TRANSFER";
+export type PaymentMethod =
+  | "BKASH"
+  | "CITY_BANK_CARD"
+  | "CITY_BANK_TRANSFER"
+  | "ZINIPAY";
 
 export type PaymentStatus =
   | "INITIATED"

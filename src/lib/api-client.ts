@@ -6,9 +6,17 @@
  * Preserves backend error structures and handles empty responses and network failures safely.
  */
 
-import type { ApiErrorIssue, ApiErrorResponse, ApiResponse } from "../types/api";
+import type {
+  ApiErrorIssue,
+  ApiErrorResponse,
+  ApiResponse,
+} from "../types/api";
 
-export type TokenGetter = () => string | null | undefined | Promise<string | null | undefined>;
+export type TokenGetter = () =>
+  | string
+  | null
+  | undefined
+  | Promise<string | null | undefined>;
 
 export interface RequestOptions extends Omit<RequestInit, "body"> {
   /**
@@ -67,7 +75,9 @@ class ApiClient {
 
   constructor() {
     const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
-    this.defaultBaseUrl = envUrl ? envUrl.replace(/\/+$/, "") : "http://localhost:5000/api";
+    this.defaultBaseUrl = envUrl
+      ? envUrl.replace(/\/+$/, "")
+      : "http://localhost:5000/api";
   }
 
   /**
@@ -166,13 +176,7 @@ class ApiClient {
     }
 
     // Attach Bearer token if not explicitly skipped
-    // Customer JWT Isolation Guard:
-    // Customer access tokens must NEVER be attached to /admin/* or /api/admin/* endpoints.
-    // Platform administration requires dedicated AdminSession authentication (Phase 02B.4/5).
-    const isAdminEndpoint = /(?:^|\/)admin(?:\/|$)/i.test(endpoint);
-    if (isAdminEndpoint) {
-      headers.delete("Authorization");
-    } else if (!skipAuth) {
+    if (!skipAuth) {
       let token = explicitToken;
       if (token === undefined) {
         token = await this.tokenGetter();
@@ -255,7 +259,10 @@ class ApiClient {
 
   // ─── Convenience Methods ───────────────────────────────────────────────────
 
-  public get<T = unknown>(endpoint: string, options?: RequestOptions): Promise<T> {
+  public get<T = unknown>(
+    endpoint: string,
+    options?: RequestOptions,
+  ): Promise<T> {
     return this.request<T>(endpoint, { ...options, method: "GET" });
   }
 
@@ -283,7 +290,10 @@ class ApiClient {
     return this.request<T>(endpoint, { ...options, method: "PATCH", body });
   }
 
-  public delete<T = unknown>(endpoint: string, options?: RequestOptions): Promise<T> {
+  public delete<T = unknown>(
+    endpoint: string,
+    options?: RequestOptions,
+  ): Promise<T> {
     return this.request<T>(endpoint, { ...options, method: "DELETE" });
   }
 }

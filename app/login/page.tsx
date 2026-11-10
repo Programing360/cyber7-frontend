@@ -30,7 +30,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  // console.log(login);
+  // console.log(user);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,8 +49,19 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      await login({ email: cleanEmail, password });
-      router.push("/dashboard");
+      const loggedInUser = await login({
+        email: cleanEmail,
+        password,
+      });
+
+      console.log("Authenticated User:", loggedInUser);
+      console.log("Platform Role:", loggedInUser.platformRole);
+
+      if (loggedInUser?.platformRole === "SUPER_ADMIN") {
+        router.replace("/admin");
+      } else {
+        router.replace("/dashboard");
+      }
     } catch (error: unknown) {
       if (error instanceof ApiClientError) {
         setErrorMessage(error.message);
@@ -68,7 +79,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen w-full bg-slate-50 font-sans text-slate-900">
       <div className="grid w-full grid-cols-1 lg:grid-cols-12">
         {/* ================= LEFT SIDE: Hero & Branding ================= */}
-        <section className="relative hidden rounded-r-2xl lg:col-span-5 lg:flex flex-col justify-between overflow-hidden bg-slate-900 p-12 text-white xl:col-span-6">
+        <section className="relative hidden rounded-r-4xl shadow-lg shadow-gray-600 lg:col-span-5 lg:flex flex-col justify-between overflow-hidden bg-slate-900 p-12 text-white xl:col-span-6 ">
           {/* Background Decorative Gradients & Grid Pattern */}
           <div className="absolute inset-0 bg-[radial-gradient(#22c55e_1px,transparent_1px)] [background-size:24px_24px] opacity-10" />
           <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-emerald-600/30 blur-3xl" />

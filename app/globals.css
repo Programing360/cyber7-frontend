@@ -61,3 +61,23 @@ a {
   background: #dcfce7;
   color: #14532d;
 }
+
+/* Cyber7 Inbox - Hide Scrollbars */
+.inbox-container {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.inbox-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar but preserve scrolling */
+.inbox-container * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.inbox-container *::-webkit-scrollbar {
+  display: none;
+}

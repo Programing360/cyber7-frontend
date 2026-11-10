@@ -553,7 +553,7 @@ export default function ContactsPage() {
               <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
-                    All Contacts
+                    All Contactss
                   </h2>
                   <p className="mt-1 text-xs text-slate-500">
                     {filteredContacts.length} contact

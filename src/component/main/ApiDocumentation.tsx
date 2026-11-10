@@ -2,15 +2,12 @@
 
 import React, { useState } from "react";
 import {
-  Code,
   Terminal,
   Copy,
   Check,
   Webhook,
-  Key,
   ShieldCheck,
   ExternalLink,
-  Sparkles,
 } from "lucide-react";
 
 type CodeLang = "curl" | "typescript" | "python";
@@ -56,8 +53,7 @@ const response = await vexchat.messages.sendTemplate({
     orderId: "ORD-9901"
   }
 });
-
-console.log("Message Dispatched:", response.messageId);`,
+`,
     python: `import requests
 
 url = "https://api.vexchat.io/v1/messages"

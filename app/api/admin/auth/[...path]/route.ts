@@ -5,7 +5,7 @@ function getBackendBaseUrl(): string {
   const envUrl =
     process.env.INTERNAL_API_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
-    process.env.BACKEND_API_URL;
+    process.env.NEXT_PUBLIC_API_URL;
 
   if (!envUrl) return "http://localhost:5000";
   return envUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
@@ -124,7 +124,12 @@ async function proxyAuthRequest(
       "x-admin-bff-assertion": assertion,
     };
 
-    // ৩. ইনকামিং কুকি ব্যাকএন্ডে ফরোয়ার্ড করা
+    // ৩. ইনকামিং Authorization এবং কুকি ব্যাকএন্ডে ফরোয়ার্ড করা
+    const authHeader = req.headers.get("authorization");
+    if (authHeader) {
+      headers["authorization"] = authHeader;
+    }
+
     const cookieHeader = req.headers.get("cookie");
     if (cookieHeader) {
       headers["cookie"] = cookieHeader;

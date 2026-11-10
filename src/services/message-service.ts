@@ -12,8 +12,19 @@ import apiClient, { ApiClientError } from "../lib/api-client";
 import type {
   ApiResponse,
   WhatsAppSentMessageData,
+  WhatsAppMessageItem,
   SendWhatsAppTemplateMessageInput,
 } from "../types/api";
+
+export interface SendMediaMessageInput {
+  workspaceId: string;
+  conversationId: string;
+  type: "IMAGE" | "VIDEO";
+  fileBase64: string;
+  filename: string;
+  mimeType: string;
+  caption?: string;
+}
 
 export interface SendTextMessageInput {
   workspaceId: string;
@@ -153,6 +164,46 @@ export const messageService = {
         templateId,
         language,
         components,
+      });
+
+      if (!response.data) {
+        throw new ApiClientError({
+          message: "No message data returned from server.",
+          status: 500,
+        });
+      }
+
+      return response.data;
+    } catch (err) {
+      const friendlyMessage = mapSendError(err);
+      throw new Error(friendlyMessage);
+    }
+  },
+
+  /**
+   * Send a WhatsApp image or video message through the backend.
+   *
+   * Endpoint: POST /whatsapp/:workspaceId/messages/media
+   */
+  async sendMediaMessage({
+    workspaceId,
+    conversationId,
+    type,
+    fileBase64,
+    filename,
+    mimeType,
+    caption,
+  }: SendMediaMessageInput): Promise<WhatsAppMessageItem> {
+    try {
+      const response = await apiClient.post<
+        ApiResponse<WhatsAppMessageItem>
+      >(`/whatsapp/${workspaceId}/messages/media`, {
+        conversationId,
+        type,
+        fileBase64,
+        filename,
+        mimeType,
+        caption,
       });
 
       if (!response.data) {

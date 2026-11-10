@@ -89,7 +89,6 @@ export default function WhatsAppStatus({
   );
 
   const status = deriveWhatsAppStatus(configStatus, whatsapp);
-  console.log(status, configStatus);
   const {
     hasConfigData,
     metaAppConfigured: isMetaAppConfigured,

@@ -17,7 +17,8 @@ import AdminFilters from "@/src/component/admin/admin-filters";
 import AdminPagination from "@/src/component/admin/admin-pagination";
 import AdminStatusBadge from "@/src/component/admin/admin-status-badge";
 import AdminDetailDrawer from "@/src/component/admin/admin-detail-drawer";
-import AdminUnimplementedModal from "@/src/component/admin/admin-unimplemented-modal";
+import AdminConfirmDialog from "@/src/component/admin/admin-confirm-dialog";
+import { adminToast } from "@/src/component/admin/admin-toast";
 import { adminService } from "@/src/services/admin-service";
 import type { AdminPlatformUser } from "@/src/types/admin";
 
@@ -34,11 +35,14 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<AdminPlatformUser | null>(
     null,
   );
-  const [mutationModalOpen, setMutationModalOpen] = useState(false);
-  const [mutationActionTitle, setMutationActionTitle] = useState("");
-  const [missingEndpoint, setMissingEndpoint] = useState(
-    "PATCH /api/admin/users/:userId/role",
-  );
+
+  // Mutation states
+  const [actionModal, setActionModal] = useState<"ROLE" | "REVOKE" | "STATUS" | "DELETE" | null>(null);
+  const [targetUser, setTargetUser] = useState<AdminPlatformUser | null>(null);
+  const [selectedRole, setSelectedRole] = useState<"USER" | "FINANCE_ADMIN" | "SUPER_ADMIN">("USER");
+  const [statusReason, setStatusReason] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -68,13 +72,112 @@ export default function AdminUsersPage() {
     loadUsers();
   }, [search, roleFilter, page]);
 
-  const handleActionClick = (
-    actionName: string,
-    endpoint = "PATCH /api/admin/users/:userId/role",
-  ) => {
-    setMutationActionTitle(actionName);
-    setMissingEndpoint(endpoint);
-    setMutationModalOpen(true);
+  // Action Triggers
+  const handleOpenRoleModal = (u: AdminPlatformUser) => {
+    setTargetUser(u);
+    setSelectedRole(u.platformRole || "USER");
+    setActionModal("ROLE");
+  };
+
+  const handleConfirmRoleChange = async () => {
+    if (!targetUser) return;
+    setActionLoading(true);
+    try {
+      await adminService.updateUserRole(targetUser.id, { platformRole: selectedRole });
+      adminToast.success(
+        "Platform Role Updated",
+        `Role for "${targetUser.name}" changed to ${selectedRole}.`,
+      );
+      setActionModal(null);
+      setSelectedUser(null);
+      await loadUsers();
+    } catch (err: any) {
+      adminToast.error("Role Update Failed", err?.message || "Failed to update user platform role.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenRevokeModal = (u: AdminPlatformUser) => {
+    setTargetUser(u);
+    setActionModal("REVOKE");
+  };
+
+  const handleConfirmRevokeSessions = async () => {
+    if (!targetUser) return;
+    setActionLoading(true);
+    try {
+      await adminService.revokeUserSessions(targetUser.id, { reason: "Admin revocation" });
+      adminToast.success(
+        "Sessions Invalidated",
+        `All active tokens and sessions for "${targetUser.name}" were revoked immediately.`,
+      );
+      setActionModal(null);
+      setSelectedUser(null);
+      await loadUsers();
+    } catch (err: any) {
+      adminToast.error("Revocation Failed", err?.message || "Failed to revoke active sessions.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenStatusModal = (u: AdminPlatformUser) => {
+    setTargetUser(u);
+    setStatusReason("");
+    setActionModal("STATUS");
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!targetUser) return;
+    const nextIsActive = !targetUser.isActive;
+    setActionLoading(true);
+    try {
+      await adminService.updateUserStatus(targetUser.id, {
+        isActive: nextIsActive,
+        reason: statusReason.trim() || undefined,
+      });
+      adminToast.success(
+        `User ${nextIsActive ? "Activated" : "Deactivated"}`,
+        `Account for "${targetUser.name}" is now ${nextIsActive ? "active" : "deactivated"}.`,
+      );
+      setActionModal(null);
+      setSelectedUser(null);
+      await loadUsers();
+    } catch (err: any) {
+      adminToast.error("Status Update Failed", err?.message || "Failed to toggle user status.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenDeleteModal = (u: AdminPlatformUser) => {
+    setTargetUser(u);
+    setDeleteConfirmation("");
+    setActionModal("DELETE");
+  };
+
+  const handleConfirmDeleteUser = async () => {
+    if (!targetUser) return;
+    if (deleteConfirmation.trim() !== "DELETE") {
+      adminToast.error("Validation Error", 'You must type "DELETE" exactly to confirm safe deletion.');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await adminService.deleteUser(targetUser.id, { confirmation: "DELETE" });
+      adminToast.success(
+        "User Deleted",
+        `User account "${targetUser.name}" has been permanently purged.`,
+      );
+      setActionModal(null);
+      setSelectedUser(null);
+      await loadUsers();
+    } catch (err: any) {
+      adminToast.error("Deletion Rejected", err?.message || "Failed to purge user account.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleResetFilters = () => {
@@ -289,12 +392,7 @@ export default function AdminUsersPage() {
                           Inspect
                         </button>
                         <button
-                          onClick={() =>
-                            handleActionClick(
-                              "Modify Platform Role",
-                              "PATCH /api/admin/users/:userId/role",
-                            )
-                          }
+                          onClick={() => handleOpenRoleModal(u)}
                           className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 focus:outline-hidden focus:ring-2 focus:ring-amber-400"
                         >
                           Edit Role
@@ -389,51 +487,132 @@ export default function AdminUsersPage() {
             {/* Quick Actions in Drawer */}
             <div className="space-y-2 pt-2 border-t border-slate-200">
               <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
-                Security Actions
+                Administrative & Security Operations
               </h4>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() =>
-                    handleActionClick(
-                      "Reset User Password",
-                      "POST /api/admin/users/:userId/password-reset",
-                    )
-                  }
-                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+                  onClick={() => handleOpenRoleModal(selectedUser)}
+                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c] cursor-pointer"
                 >
-                  Password Reset
+                  Change Platform Role
                 </button>
                 <button
-                  onClick={() =>
-                    handleActionClick(
-                      "Revoke Active Sessions",
-                      "POST /api/admin/users/:userId/revoke-sessions",
-                    )
-                  }
-                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+                  onClick={() => handleOpenRevokeModal(selectedUser)}
+                  className="rounded-xl border border-amber-200 bg-amber-50/50 p-2.5 text-center font-semibold text-amber-800 hover:bg-amber-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500 cursor-pointer"
                 >
                   Revoke Sessions
                 </button>
+                <button
+                  onClick={() => handleOpenStatusModal(selectedUser)}
+                  className={`rounded-xl border p-2.5 text-center font-semibold cursor-pointer ${selectedUser.isActive
+                      ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                    }`}
+                >
+                  {selectedUser.isActive ? "Deactivate User" : "Activate User"}
+                </button>
+                <button
+                  onClick={() => handleOpenDeleteModal(selectedUser)}
+                  className="rounded-xl border border-rose-200 bg-rose-50/50 p-2.5 text-center font-semibold text-rose-700 hover:bg-rose-100 focus:outline-hidden focus:ring-2 focus:ring-rose-500 cursor-pointer"
+                >
+                  Safe Purge
+                </button>
               </div>
-            </div>
-
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-amber-900 text-[11px]">
-              <strong>Security Protocol:</strong> Elevation to SUPER_ADMIN or
-              FINANCE_ADMIN requires out-of-band CLI execution (
-              <code>npm run admin:bootstrap</code>) or an authoritative backend
-              admin endpoint. Client-side role modifications are strictly blocked.
             </div>
           </div>
         )}
       </AdminDetailDrawer>
 
-      <AdminUnimplementedModal
-        open={mutationModalOpen}
-        onClose={() => setMutationModalOpen(false)}
-        actionTitle={mutationActionTitle}
-        missingEndpoint={missingEndpoint}
-        explanation="The endpoint to mutate user roles or platform permissions does not exist in cyber7-backend. Fake role changes are disabled to protect access boundaries."
+      {/* Change Platform Role Modal */}
+      <AdminConfirmDialog
+        open={actionModal === "ROLE"}
+        onClose={() => setActionModal(null)}
+        onConfirm={handleConfirmRoleChange}
+        title="Change Platform Role"
+        description={`Modify administrative platform role for "${targetUser?.name}" (${targetUser?.email}).`}
+        confirmText="Save Role"
+        isLoading={actionLoading}
+        variant="primary"
+      >
+        <div className="mt-3 text-xs">
+          <label className="font-semibold text-slate-700">Select Platform Role</label>
+          <select
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value as any)}
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-slate-900 font-semibold focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
+          >
+            <option value="USER">USER (Standard Customer / No Platform Access)</option>
+            <option value="FINANCE_ADMIN">FINANCE_ADMIN (Billing & Manual Ledger Review)</option>
+            <option value="SUPER_ADMIN">SUPER_ADMIN (Full Platform Authority)</option>
+          </select>
+        </div>
+      </AdminConfirmDialog>
+
+      {/* Revoke Sessions Modal */}
+      <AdminConfirmDialog
+        open={actionModal === "REVOKE"}
+        onClose={() => setActionModal(null)}
+        onConfirm={handleConfirmRevokeSessions}
+        title="Revoke Active Sessions"
+        description={`Invalidate all active sessions, JWT tokens, and cookies for "${targetUser?.name}". The user will be immediately logged out of all devices.`}
+        confirmText="Revoke All Sessions"
+        isLoading={actionLoading}
+        variant="warning"
       />
+
+      {/* Toggle User Account Status Modal */}
+      <AdminConfirmDialog
+        open={actionModal === "STATUS"}
+        onClose={() => setActionModal(null)}
+        onConfirm={handleConfirmStatusChange}
+        title={targetUser?.isActive ? "Deactivate User Account" : "Activate User Account"}
+        description={
+          targetUser?.isActive
+            ? `Deactivating "${targetUser?.name}" will instantly revoke their active sessions and prevent login.`
+            : `Activating "${targetUser?.name}" will restore their platform and workspace access.`
+        }
+        confirmText={targetUser?.isActive ? "Deactivate User" : "Activate User"}
+        isLoading={actionLoading}
+        variant={targetUser?.isActive ? "destructive" : "primary"}
+      >
+        {targetUser?.isActive && (
+          <div className="mt-3 text-xs">
+            <label className="font-semibold text-slate-700">Deactivation Reason (Optional)</label>
+            <input
+              type="text"
+              value={statusReason}
+              onChange={(e) => setStatusReason(e.target.value)}
+              placeholder="e.g., Security policy violation"
+              className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+            />
+          </div>
+        )}
+      </AdminConfirmDialog>
+
+      {/* Safe Purge User Modal */}
+      <AdminConfirmDialog
+        open={actionModal === "DELETE"}
+        onClose={() => setActionModal(null)}
+        onConfirm={handleConfirmDeleteUser}
+        title="Safe Purge User Account"
+        description={`Permanently delete user "${targetUser?.name}" (${targetUser?.email}). The system will reject deletion if this user owns active paid workspaces or financial transactions.`}
+        confirmText="Permanently Delete"
+        isLoading={actionLoading}
+        variant="destructive"
+      >
+        <div className="mt-3 text-xs">
+          <label className="font-semibold text-rose-800">
+            Type <strong className="font-mono font-bold">DELETE</strong> to confirm safe deletion *
+          </label>
+          <input
+            type="text"
+            value={deleteConfirmation}
+            onChange={(e) => setDeleteConfirmation(e.target.value)}
+            placeholder="Type DELETE"
+            className="mt-1 w-full rounded-xl border border-rose-300 p-2.5 text-slate-900 font-mono font-bold focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+          />
+        </div>
+      </AdminConfirmDialog>
     </div>
   );
 }

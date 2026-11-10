@@ -290,7 +290,9 @@ export default function TemplatesPage() {
                   size={16}
                   className={isSyncing ? "animate-spin text-green-600" : ""}
                 />
-                <span>{isSyncing ? "Syncing with Meta..." : "Sync with Meta"}</span>
+                <span>
+                  {isSyncing ? "Syncing with Meta..." : "Sync with Meta"}
+                </span>
               </button>
 
               <button
@@ -317,14 +319,16 @@ export default function TemplatesPage() {
                 notice.type === "success"
                   ? "border-green-200 bg-green-50 text-green-800"
                   : notice.type === "error"
-                  ? "border-red-200 bg-red-50 text-red-800"
-                  : "border-blue-200 bg-blue-50 text-blue-800"
+                    ? "border-red-200 bg-red-50 text-red-800"
+                    : "border-blue-200 bg-blue-50 text-blue-800"
               }`}
             >
               <div className="flex items-center gap-2">
                 {notice.type === "success" && <CheckCircle2 size={17} />}
                 {notice.type === "error" && <AlertTriangle size={17} />}
-                {notice.type === "info" && <Loader2 size={17} className="animate-spin" />}
+                {notice.type === "info" && (
+                  <Loader2 size={17} className="animate-spin" />
+                )}
                 <span>{notice.text}</span>
               </div>
               <button
@@ -375,7 +379,7 @@ export default function TemplatesPage() {
               return (
                 <div
                   key={stat.title}
-                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:scale-105 transition-all duration-300"
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -470,20 +474,25 @@ export default function TemplatesPage() {
                   Loading message templates...
                 </p>
                 <p className="mt-1 text-xs text-slate-400">
-                  Retrieving templates for {activeWorkspace?.name || "workspace"}
+                  Retrieving templates for{" "}
+                  {activeWorkspace?.name || "workspace"}
                 </p>
               </div>
             ) : (
               /* Template cards */
               <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3 sm:p-5">
                 {filteredTemplates.map((template) => {
-                  const upperStatus = template.status?.toUpperCase() || "PENDING";
-                  const upperCategory = template.category?.toUpperCase() || "UTILITY";
+                  const upperStatus =
+                    template.status?.toUpperCase() || "PENDING";
+                  const upperCategory =
+                    template.category?.toUpperCase() || "UTILITY";
 
                   return (
                     <article
-                      key={template._id || template.id || template.metaTemplateId}
-                      className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-md"
+                      key={
+                        template._id || template.id || template.metaTemplateId
+                      }
+                      className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-lg"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -584,10 +593,16 @@ export default function TemplatesPage() {
 
                       {/* Meta Sync Info */}
                       <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-[11px] text-slate-400">
-                        <span className="truncate" title={template.metaTemplateId}>
+                        <span
+                          className="truncate"
+                          title={template.metaTemplateId}
+                        >
                           ID: {template.metaTemplateId}
                         </span>
-                        <span>Synced {formatDate(template.syncedAt || template.updatedAt)}</span>
+                        <span>
+                          Synced{" "}
+                          {formatDate(template.syncedAt || template.updatedAt)}
+                        </span>
                       </div>
 
                       {/* Action Buttons */}
@@ -633,7 +648,9 @@ export default function TemplatesPage() {
                         {upperStatus === "REJECTED" && (
                           <div
                             className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
-                            title={template.rejectedReason || "Rejected by Meta"}
+                            title={
+                              template.rejectedReason || "Rejected by Meta"
+                            }
                           >
                             <XCircle size={14} />
                             Rejected by Meta
@@ -663,8 +680,9 @@ export default function TemplatesPage() {
                           No WhatsApp Templates Synced
                         </p>
                         <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
-                          Connect your WhatsApp Business Account and click &quot;Sync
-                          with Meta&quot; to import your approved message templates.
+                          Connect your WhatsApp Business Account and click
+                          &quot;Sync with Meta&quot; to import your approved
+                          message templates.
                         </p>
                         <div className="mt-5 flex justify-center gap-3">
                           <button
@@ -677,7 +695,11 @@ export default function TemplatesPage() {
                               size={16}
                               className={isSyncing ? "animate-spin" : ""}
                             />
-                            <span>{isSyncing ? "Syncing..." : "Sync Templates from Meta"}</span>
+                            <span>
+                              {isSyncing
+                                ? "Syncing..."
+                                : "Sync Templates from Meta"}
+                            </span>
                           </button>
                           <Link
                             href="/integrations/whatsapp"
@@ -756,8 +778,9 @@ export default function TemplatesPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    categoryStyles[previewTemplate.category?.toUpperCase() || ""] ||
-                    "bg-slate-100 text-slate-700"
+                    categoryStyles[
+                      previewTemplate.category?.toUpperCase() || ""
+                    ] || "bg-slate-100 text-slate-700"
                   }`}
                 >
                   {formatLabel(previewTemplate.category)}
@@ -791,7 +814,9 @@ export default function TemplatesPage() {
                         </p>
                       ) : (
                         <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
-                          <span>[Media Header: {previewTemplate.header.format}]</span>
+                          <span>
+                            [Media Header: {previewTemplate.header.format}]
+                          </span>
                         </div>
                       )}
                     </div>
@@ -859,7 +884,9 @@ export default function TemplatesPage() {
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-500">Synced Date</span>
                   <span className="font-medium text-slate-800">
-                    {formatDate(previewTemplate.syncedAt || previewTemplate.updatedAt)}
+                    {formatDate(
+                      previewTemplate.syncedAt || previewTemplate.updatedAt,
+                    )}
                   </span>
                 </div>
               </div>
@@ -922,7 +949,8 @@ export default function TemplatesPage() {
                 <ol className="list-inside list-decimal space-y-1 pl-1">
                   <li>Open your Meta WhatsApp Business Manager.</li>
                   <li>
-                    Navigate to <strong>WhatsApp Manager &gt; Message Templates</strong>.
+                    Navigate to{" "}
+                    <strong>WhatsApp Manager &gt; Message Templates</strong>.
                   </li>
                   <li>
                     {metaDialog.action === "create" &&
@@ -932,7 +960,10 @@ export default function TemplatesPage() {
                     {metaDialog.action === "delete" &&
                       "Delete the template from your WABA templates list."}
                   </li>
-                  <li>Return here and click <strong>&quot;Sync with Meta&quot;</strong>.</li>
+                  <li>
+                    Return here and click{" "}
+                    <strong>&quot;Sync with Meta&quot;</strong>.
+                  </li>
                 </ol>
               </div>
 

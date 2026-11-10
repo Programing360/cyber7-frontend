@@ -1,72 +1,145 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
   Check,
   CheckCircle2,
   Clock3,
+  HelpCircle,
   LifeBuoy,
+  Loader2,
   MessageCircle,
   Plus,
+  RefreshCw,
   Search,
   Send,
   Ticket,
+  User,
   X,
 } from "lucide-react";
 
 import DashboardLayout from "@/src/component/dashboard/dashboard-layout";
-
-import {
-  supportTickets as initialTickets,
-  ticketCategories,
-  ticketPriorities,
-  ticketStatuses,
-  type SupportTicket,
-  type TicketPriority,
-  type TicketStatus,
-} from "@/src/data/mock/support";
+import { useWorkspace } from "@/src/context/workspace-context";
+import { useAuth } from "@/src/context/auth-context";
+import supportService from "@/src/services/support-service";
+import type {
+  SupportTicketItem,
+  SupportTicketStats,
+  SupportTicketStatus,
+  SupportTicketPriority,
+} from "@/src/types/api";
 
 const BRAND = "#88da1c";
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+export const TICKET_CATEGORIES = [
+  "Technical Issue",
+  "WhatsApp Integration",
+  "Account Setup",
+  "Billing & Subscription",
+  "Campaigns & Messaging",
+  "Team Management",
+  "General Inquiry",
+  "Other",
+] as const;
 
-function getPriorityStyle(priority: TicketPriority) {
-  switch (priority) {
-    case "Urgent":
-      return "bg-red-50 text-red-700";
-    case "High":
-      return "bg-orange-50 text-orange-700";
-    case "Medium":
-      return "bg-amber-50 text-amber-700";
-    case "Low":
-      return "bg-slate-100 text-slate-600";
+export const TICKET_PRIORITIES = [
+  { label: "Low", value: "LOW" as const },
+  { label: "Medium", value: "MEDIUM" as const },
+  { label: "High", value: "HIGH" as const },
+  { label: "Urgent", value: "URGENT" as const },
+];
+
+export const TICKET_STATUSES = [
+  { label: "Open", value: "OPEN" as const },
+  { label: "In Progress", value: "IN_PROGRESS" as const },
+  { label: "Resolved", value: "RESOLVED" as const },
+  { label: "Closed", value: "CLOSED" as const },
+];
+
+function formatDate(date?: string | null) {
+  if (!date) return "N/A";
+  try {
+    return new Date(date).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return date;
   }
 }
 
-function getStatusStyle(status: TicketStatus) {
-  switch (status) {
-    case "Open":
-      return "bg-lime-100 text-lime-800";
-    case "In Progress":
-      return "bg-blue-50 text-blue-700";
-    case "Resolved":
-      return "bg-emerald-50 text-emerald-700";
+function getPriorityLabel(priority?: SupportTicketPriority | string): string {
+  const norm = String(priority || "").toUpperCase();
+  switch (norm) {
+    case "URGENT":
+      return "Urgent";
+    case "HIGH":
+      return "High";
+    case "MEDIUM":
+      return "Medium";
+    case "LOW":
+      return "Low";
+    default:
+      return priority || "Medium";
   }
 }
 
-function getInitials(name: string) {
+function getStatusLabel(status?: SupportTicketStatus | string): string {
+  const norm = String(status || "").toUpperCase();
+  switch (norm) {
+    case "OPEN":
+      return "Open";
+    case "IN_PROGRESS":
+      return "In Progress";
+    case "RESOLVED":
+      return "Resolved";
+    case "CLOSED":
+      return "Closed";
+    default:
+      return status || "Open";
+  }
+}
+
+function getPriorityStyle(priority?: SupportTicketPriority | string) {
+  const norm = String(priority || "").toUpperCase();
+  switch (norm) {
+    case "URGENT":
+      return "bg-red-50 text-red-700 border border-red-200/60";
+    case "HIGH":
+      return "bg-orange-50 text-orange-700 border border-orange-200/60";
+    case "MEDIUM":
+      return "bg-amber-50 text-amber-700 border border-amber-200/60";
+    case "LOW":
+    default:
+      return "bg-slate-100 text-slate-600 border border-slate-200/60";
+  }
+}
+
+function getStatusStyle(status?: SupportTicketStatus | string) {
+  const norm = String(status || "").toUpperCase();
+  switch (norm) {
+    case "OPEN":
+      return "bg-lime-100 text-lime-800 border border-lime-200/60";
+    case "IN_PROGRESS":
+      return "bg-blue-50 text-blue-700 border border-blue-200/60";
+    case "RESOLVED":
+      return "bg-emerald-50 text-emerald-700 border border-emerald-200/60";
+    case "CLOSED":
+    default:
+      return "bg-slate-100 text-slate-600 border border-slate-200/60";
+  }
+}
+
+function getInitials(name?: string | null) {
+  if (!name || !name.trim()) return "U";
   return name
-    .split(" ")
+    .trim()
+    .split(/\s+/)
     .map((part) => part[0])
     .join("")
     .slice(0, 2)
@@ -87,17 +160,14 @@ function StatCard({
   iconClass: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      {" "}
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        {" "}
         <div>
-          {" "}
-          <p className="text-sm font-medium text-slate-500">{title}</p>{" "}
+          <p className="text-sm font-medium text-slate-500">{title}</p>
           <p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
-            {value}{" "}
-          </p>{" "}
-          <p className="mt-2 text-xs text-slate-500">{description}</p>{" "}
+            {value}
+          </p>
+          <p className="mt-2 text-xs text-slate-500">{description}</p>
         </div>
         <div className={`rounded-xl p-3 ${iconClass}`}>
           <Icon size={21} />
@@ -108,221 +178,474 @@ function StatCard({
 }
 
 export default function SupportPage() {
-  const [tickets, setTickets] = useState<SupportTicket[]>(initialTickets);
+  const { activeWorkspace, isLoading: isWorkspaceLoading } = useWorkspace();
+  const { user } = useAuth();
+
+  const [tickets, setTickets] = useState<SupportTicketItem[]>([]);
+  const [stats, setStats] = useState<SupportTicketStats>({
+    total: 0,
+    open: 0,
+    inProgress: 0,
+    resolved: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"All" | TicketStatus>("All");
-  const [priorityFilter, setPriorityFilter] = useState<"All" | TicketPriority>(
-    "All",
-  );
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [selectedTicketDetail, setSelectedTicketDetail] =
+    useState<SupportTicketItem | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [toast, setToast] = useState("");
+  const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isUpdatingPriority, setIsUpdatingPriority] = useState(false);
 
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
+
+  // Form states for creating a ticket
   const [newSubject, setNewSubject] = useState("");
-  const [newCategory, setNewCategory] = useState("Technical Issue");
-  const [newPriority, setNewPriority] = useState<TicketPriority>("Medium");
+  const [newCategory, setNewCategory] = useState<string>("Technical Issue");
+  const [newPriority, setNewPriority] = useState<SupportTicketPriority>("MEDIUM");
   const [newDescription, setNewDescription] = useState("");
   const [newEmail, setNewEmail] = useState("");
 
   const [reply, setReply] = useState("");
 
-  const selectedTicket = tickets.find(
-    (ticketItem) => ticketItem.id === selectedTicketId,
+  const showToast = useCallback(
+    (message: string, type: "success" | "error" = "success") => {
+      setToast({ message, type });
+      window.setTimeout(() => setToast(null), 3500);
+    },
+    [],
   );
 
+  // Prefill email when modal opens or user loads
+  useEffect(() => {
+    if (user?.email && !newEmail) {
+      setNewEmail(user.email);
+    }
+  }, [user?.email, newEmail]);
+
+  // Load tickets from backend API
+  const fetchTickets = useCallback(
+    async (isManualRefresh = false) => {
+      if (!activeWorkspace?.id) return;
+      if (isManualRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
+
+      try {
+        const res = await supportService.listTickets({
+          workspaceId: activeWorkspace.id,
+          status: statusFilter !== "ALL" ? statusFilter : undefined,
+          priority: priorityFilter !== "ALL" ? priorityFilter : undefined,
+          search: search.trim() || undefined,
+          page: 1,
+          pageSize: 100,
+        });
+
+        setTickets(res.items || []);
+
+        if (res.stats) {
+          setStats(res.stats);
+        } else {
+          const items = res.items || [];
+          setStats({
+            total: items.length,
+            open: items.filter((t) => t.status === "OPEN").length,
+            inProgress: items.filter((t) => t.status === "IN_PROGRESS").length,
+            resolved: items.filter(
+              (t) => t.status === "RESOLVED" || t.status === "CLOSED",
+            ).length,
+          });
+        }
+      } catch (err: any) {
+        console.warn("Notice: Live support tickets sync:", err);
+        if (tickets.length === 0) {
+          setError(
+            err?.message ||
+            "Unable to load support tickets. Please verify your connection.",
+          );
+        }
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [activeWorkspace?.id, statusFilter, priorityFilter, search, tickets.length],
+  );
+
+  useEffect(() => {
+    if (activeWorkspace?.id) {
+      fetchTickets();
+    } else if (!isWorkspaceLoading) {
+      setIsLoading(false);
+    }
+  }, [fetchTickets, activeWorkspace?.id, isWorkspaceLoading]);
+
+  // Client-side quick filter for instantaneous typing responsiveness
   const filteredTickets = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return tickets.filter((ticketItem) => {
+      const ticketIdStr = (
+        ticketItem.ticketNumber ||
+        ticketItem.id ||
+        ticketItem._id ||
+        ""
+      ).toLowerCase();
+      const subject = (ticketItem.subject || "").toLowerCase();
+      const customer = (ticketItem.customerName || "").toLowerCase();
+      const email = (ticketItem.customerEmail || "").toLowerCase();
+      const category = (ticketItem.category || "").toLowerCase();
+
       const matchesSearch =
         !query ||
-        ticketItem.id.toLowerCase().includes(query) ||
-        ticketItem.subject.toLowerCase().includes(query) ||
-        ticketItem.customer.toLowerCase().includes(query) ||
-        ticketItem.email.toLowerCase().includes(query);
+        ticketIdStr.includes(query) ||
+        subject.includes(query) ||
+        customer.includes(query) ||
+        email.includes(query) ||
+        category.includes(query);
 
       const matchesStatus =
-        statusFilter === "All" || ticketItem.status === statusFilter;
+        statusFilter === "ALL" || ticketItem.status === statusFilter;
 
       const matchesPriority =
-        priorityFilter === "All" || ticketItem.priority === priorityFilter;
+        priorityFilter === "ALL" || ticketItem.priority === priorityFilter;
 
       return matchesSearch && matchesStatus && matchesPriority;
     });
   }, [tickets, search, statusFilter, priorityFilter]);
 
-  const stats = {
-    total: tickets.length,
-    open: tickets.filter((ticketItem) => ticketItem.status === "Open").length,
-    inProgress: tickets.filter(
-      (ticketItem) => ticketItem.status === "In Progress",
-    ).length,
-    resolved: tickets.filter((ticketItem) => ticketItem.status === "Resolved")
-      .length,
+  // Find currently selected ticket
+  const selectedTicket = useMemo(() => {
+    if (!selectedTicketId) return null;
+    if (
+      selectedTicketDetail &&
+      (selectedTicketDetail.ticketNumber === selectedTicketId ||
+        selectedTicketDetail.id === selectedTicketId ||
+        selectedTicketDetail._id === selectedTicketId)
+    ) {
+      return selectedTicketDetail;
+    }
+    return (
+      tickets.find(
+        (t) =>
+          t.ticketNumber === selectedTicketId ||
+          t.id === selectedTicketId ||
+          t._id === selectedTicketId,
+      ) || null
+    );
+  }, [selectedTicketId, selectedTicketDetail, tickets]);
+
+  // Open ticket details and load full message conversation
+  const handleOpenTicket = async (ticket: SupportTicketItem) => {
+    const id = ticket.ticketNumber || ticket.id || ticket._id || "";
+    setSelectedTicketId(id);
+    setSelectedTicketDetail(ticket);
+
+    if (activeWorkspace?.id && id) {
+      setIsLoadingDetail(true);
+      try {
+        const fullDetail = await supportService.getTicket(
+          activeWorkspace.id,
+          id,
+        );
+        setSelectedTicketDetail(fullDetail);
+        setTickets((prev) =>
+          prev.map((t) =>
+            t.ticketNumber === id || t.id === id || t._id === id
+              ? fullDetail
+              : t,
+          ),
+        );
+      } catch (err) {
+        console.warn("Could not fetch full ticket details, using cached:", err);
+      } finally {
+        setIsLoadingDetail(false);
+      }
+    }
   };
 
-  function showToast(message: string) {
-    setToast(message);
-    window.setTimeout(() => setToast(""), 3000);
-  }
+  // Update Status
+  const handleUpdateStatus = async (newStatus: SupportTicketStatus) => {
+    if (!selectedTicket || !activeWorkspace?.id) return;
+    const ticketKey =
+      selectedTicket.ticketNumber ||
+      selectedTicket.id ||
+      selectedTicket._id ||
+      "";
+    if (!ticketKey) return;
 
-  function updateTicketStatus(ticketId: string, status: TicketStatus) {
-    setTickets((currentTickets) =>
-      currentTickets.map((ticketItem) =>
-        ticketItem.id === ticketId
-          ? {
-              ...ticketItem,
-              status,
-              updatedAt: new Date().toISOString(),
-            }
-          : ticketItem,
-      ),
-    );
+    setIsUpdatingStatus(true);
+    try {
+      const updated = await supportService.updateStatus(
+        activeWorkspace.id,
+        ticketKey,
+        newStatus,
+      );
+      setSelectedTicketDetail(updated);
+      setTickets((prev) =>
+        prev.map((t) =>
+          t.ticketNumber === ticketKey ||
+            t.id === ticketKey ||
+            t._id === ticketKey
+            ? updated
+            : t,
+        ),
+      );
+      showToast(
+        `Ticket status updated to ${getStatusLabel(newStatus)}.`,
+        "success",
+      );
+      fetchTickets();
+    } catch (err: any) {
+      console.error("Failed to update status:", err);
+      showToast(err?.message || "Failed to update ticket status.", "error");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
-    showToast(
-      `Ticket status updated to ${status}. Demo changes are temporary.`,
-    );
-  }
+  // Update Priority
+  const handleUpdatePriority = async (newPriority: SupportTicketPriority) => {
+    if (!selectedTicket || !activeWorkspace?.id) return;
+    const ticketKey =
+      selectedTicket.ticketNumber ||
+      selectedTicket.id ||
+      selectedTicket._id ||
+      "";
+    if (!ticketKey) return;
 
-  function updateTicketPriority(ticketId: string, priority: TicketPriority) {
-    setTickets((currentTickets) =>
-      currentTickets.map((ticketItem) =>
-        ticketItem.id === ticketId
-          ? {
-              ...ticketItem,
-              priority,
-              updatedAt: new Date().toISOString(),
-            }
-          : ticketItem,
-      ),
-    );
+    setIsUpdatingPriority(true);
+    try {
+      const updated = await supportService.updatePriority(
+        activeWorkspace.id,
+        ticketKey,
+        newPriority,
+      );
+      setSelectedTicketDetail(updated);
+      setTickets((prev) =>
+        prev.map((t) =>
+          t.ticketNumber === ticketKey ||
+            t.id === ticketKey ||
+            t._id === ticketKey
+            ? updated
+            : t,
+        ),
+      );
+      showToast(
+        `Ticket priority updated to ${getPriorityLabel(newPriority)}.`,
+        "success",
+      );
+    } catch (err: any) {
+      console.error("Failed to update priority:", err);
+      showToast(err?.message || "Failed to update ticket priority.", "error");
+    } finally {
+      setIsUpdatingPriority(false);
+    }
+  };
 
-    showToast("Ticket priority updated. Demo changes are temporary.");
-  }
-
-  function handleCreateTicket(event: React.FormEvent<HTMLFormElement>) {
+  // Create new ticket
+  const handleCreateTicket = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!newSubject.trim() || !newDescription.trim() || !newEmail.trim()) {
-      showToast("Please complete all required fields.");
+    if (!activeWorkspace?.id) {
+      showToast("No active workspace selected.", "error");
       return;
     }
 
-    const newTicket: SupportTicket = {
-      id: `TKT-${Date.now().toString().slice(-6)}`,
-      subject: newSubject.trim(),
-      customer: newEmail.split("@")[0].replace(/[._-]/g, " "),
-      email: newEmail.trim(),
-      category: newCategory,
-      priority: newPriority,
-      status: "Open",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      description: newDescription.trim(),
-      messages: [
-        {
-          id: `MSG-${Date.now()}`,
-          sender: "Current User",
-          role: "customer",
-          message: newDescription.trim(),
-          createdAt: new Date().toISOString(),
-        },
-      ],
-    };
+    if (!newSubject.trim() || !newDescription.trim()) {
+      showToast("Please enter a subject and description.", "error");
+      return;
+    }
 
-    setTickets((currentTickets) => [newTicket, ...currentTickets]);
-    setSelectedTicketId(newTicket.id);
-    setShowCreateModal(false);
+    setIsSubmittingTicket(true);
+    try {
+      const created = await supportService.createTicket({
+        workspaceId: activeWorkspace.id,
+        subject: newSubject.trim(),
+        category: newCategory,
+        priority: newPriority,
+        description: newDescription.trim(),
+        customerName:
+          user?.name ||
+          (newEmail ? newEmail.split("@")[0].replace(/[._-]/g, " ") : "Customer"),
+        customerEmail: newEmail.trim() || user?.email || "",
+      });
 
-    setNewSubject("");
-    setNewCategory("Technical Issue");
-    setNewPriority("Medium");
-    setNewDescription("");
-    setNewEmail("");
+      setTickets((prev) => [created, ...prev]);
+      const createdKey =
+        created.ticketNumber || created.id || created._id || "";
+      setSelectedTicketId(createdKey);
+      setSelectedTicketDetail(created);
+      setShowCreateModal(false);
 
-    showToast("Demo support ticket created successfully.");
-  }
+      setNewSubject("");
+      setNewCategory("Technical Issue");
+      setNewPriority("MEDIUM");
+      setNewDescription("");
 
-  function handleSendReply(event: React.FormEvent<HTMLFormElement>) {
+      showToast("Support ticket created successfully.", "success");
+      fetchTickets();
+    } catch (err: any) {
+      console.error("Failed to create ticket:", err);
+      showToast(err?.message || "Failed to create support ticket.", "error");
+    } finally {
+      setIsSubmittingTicket(false);
+    }
+  };
+
+  // Send message reply
+  const handleSendReply = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!selectedTicket || !reply.trim() || !activeWorkspace?.id) return;
 
-    if (!selectedTicket || !reply.trim()) return;
+    const ticketKey =
+      selectedTicket.ticketNumber ||
+      selectedTicket.id ||
+      selectedTicket._id ||
+      "";
+    if (!ticketKey) return;
 
-    const newMessage = {
-      id: `MSG-${Date.now()}`,
-      sender: "VexChat Support",
-      role: "support" as const,
-      message: reply.trim(),
-      createdAt: new Date().toISOString(),
-    };
+    setIsSendingReply(true);
+    try {
+      const updated = await supportService.addMessage(
+        activeWorkspace.id,
+        ticketKey,
+        {
+          content: reply.trim(),
+        },
+      );
 
-    setTickets((currentTickets) =>
-      currentTickets.map((ticketItem) =>
-        ticketItem.id === selectedTicket.id
-          ? {
-              ...ticketItem,
-              messages: [...ticketItem.messages, newMessage],
-              updatedAt: new Date().toISOString(),
-            }
-          : ticketItem,
-      ),
-    );
-
-    setReply("");
-    showToast("Demo reply added to the conversation.");
-  }
+      setSelectedTicketDetail(updated);
+      setTickets((prev) =>
+        prev.map((t) =>
+          t.ticketNumber === ticketKey ||
+            t.id === ticketKey ||
+            t._id === ticketKey
+            ? updated
+            : t,
+        ),
+      );
+      setReply("");
+      showToast("Reply sent to support team.", "success");
+      fetchTickets();
+    } catch (err: any) {
+      console.error("Failed to send reply:", err);
+      showToast(err?.message || "Failed to send message reply.", "error");
+    } finally {
+      setIsSendingReply(false);
+    }
+  };
 
   return (
     <DashboardLayout>
-      {" "}
       <main className="min-h-screen bg-[#f7f9f4] px-4 py-6 sm:px-6 lg:px-8">
-        {" "}
         <div className="mx-auto max-w-7xl space-y-7">
-          {/* Header */}{" "}
+          {/* Header */}
           <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            {" "}
             <div>
-              {" "}
               <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
-                {" "}
-                <span>Workspace</span> <span>/</span>{" "}
+                <span>{activeWorkspace?.name || "Workspace"}</span>
+                <span>/</span>
                 <span className="font-medium text-slate-800">
-                  Support Tickets{" "}
-                </span>{" "}
+                  Support Tickets
+                </span>
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                 Support Tickets
               </h1>
               <p className="mt-2 text-sm text-slate-500">
-                Manage customer requests and keep every conversation organized.
+                Get real-time assistance and track resolutions for your WhatsApp
+                workspace.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#88da1c] px-5 py-3 text-sm font-bold text-[#20320d] shadow-sm transition hover:bg-[#79c516]"
-            >
-              <Plus size={18} />
-              Create Ticket
-            </button>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => fetchTickets(true)}
+                disabled={isRefreshing || isLoading}
+                aria-label="Refresh tickets"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                <RefreshCw
+                  size={16}
+                  className={isRefreshing ? "animate-spin text-[#65a31a]" : ""}
+                />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#88da1c] px-5 py-3 text-sm font-bold text-[#20320d] shadow-sm transition hover:bg-[#79c516]"
+              >
+                <Plus size={18} />
+                Create Ticket
+              </button>
+            </div>
           </header>
-          {/* Demo notice */}
-          <div className="flex gap-3 rounded-2xl border border-[#c5ed98] bg-[#effbdd] p-4">
-            <LifeBuoy size={20} className="mt-0.5 shrink-0 text-[#426d14]" />
-            <div>
-              <p className="text-sm font-bold text-[#29450c]">
-                Support workspace demo
-              </p>
-              <p className="mt-1 text-sm leading-6 text-[#49682a]">
-                Tickets, status changes, and replies are stored in temporary
-                React state. Refreshing the page restores the original sample
-                data.
-              </p>
+
+          {/* Live Helpdesk Banner */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-[#c5ed98] bg-[#effbdd] p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#88da1c]/30 text-[#29450c]">
+                <LifeBuoy size={22} className="text-[#3b6312]" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-[#29450c]">
+                  {activeWorkspace?.name || "Workspace"} Helpdesk
+                </p>
+                <p className="text-xs text-[#49682a]">
+                  All support requests, updates, and replies are synchronized
+                  live with our platform engineers.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pl-1 sm:pl-0">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#88da1c] opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#75be15]" />
+              </span>
+              <span className="text-xs font-bold text-[#355c11]">
+                Live Cloud Sync
+              </span>
             </div>
           </div>
-          {/* Stats */}
+
+          {/* Error Banner */}
+          {error && (
+            <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800">
+              <AlertCircle size={20} className="mt-0.5 shrink-0 text-red-600" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold">{error}</p>
+                <button
+                  type="button"
+                  onClick={() => fetchTickets(true)}
+                  className="mt-2 text-xs font-bold underline hover:text-red-900"
+                >
+                  Click here to retry
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Stats Cards */}
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               title="Total Tickets"
@@ -335,7 +658,7 @@ export default function SupportPage() {
             <StatCard
               title="Open Tickets"
               value={stats.open}
-              description="Waiting for attention"
+              description="Waiting for agent response"
               icon={AlertCircle}
               iconClass="bg-amber-50 text-amber-700"
             />
@@ -343,7 +666,7 @@ export default function SupportPage() {
             <StatCard
               title="In Progress"
               value={stats.inProgress}
-              description="Currently being handled"
+              description="Being resolved by engineers"
               icon={Clock3}
               iconClass="bg-blue-50 text-blue-700"
             />
@@ -351,30 +674,45 @@ export default function SupportPage() {
             <StatCard
               title="Resolved"
               value={stats.resolved}
-              description="Successfully resolved"
+              description="Successfully closed"
               icon={CheckCircle2}
               iconClass="bg-emerald-50 text-emerald-700"
             />
           </section>
-          {/* Ticket list / details */}
+
+          {/* Main Content Area */}
           {selectedTicket ? (
+            /* Ticket Detail View */
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center">
                 <div>
                   <button
                     type="button"
-                    onClick={() => setSelectedTicketId(null)}
+                    onClick={() => {
+                      setSelectedTicketId(null);
+                      setSelectedTicketDetail(null);
+                    }}
                     className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900"
                   >
                     <ArrowLeft size={16} />
-                    Back to tickets
+                    Back to all tickets
                   </button>
 
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    {selectedTicket.id}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                      {selectedTicket.ticketNumber ||
+                        selectedTicket.id ||
+                        selectedTicket._id}
+                    </p>
+                    {isLoadingDetail && (
+                      <Loader2
+                        size={13}
+                        className="animate-spin text-slate-400"
+                      />
+                    )}
+                  </div>
 
-                  <h2 className="mt-1 text-xl font-bold text-slate-900">
+                  <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
                     {selectedTicket.subject}
                   </h2>
                 </div>
@@ -385,7 +723,7 @@ export default function SupportPage() {
                       selectedTicket.priority,
                     )}`}
                   >
-                    {selectedTicket.priority} Priority
+                    {getPriorityLabel(selectedTicket.priority)} Priority
                   </span>
 
                   <span
@@ -393,90 +731,108 @@ export default function SupportPage() {
                       selectedTicket.status,
                     )}`}
                   >
-                    {selectedTicket.status}
+                    {getStatusLabel(selectedTicket.status)}
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px]">
-                {/* Conversation */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px]">
+                {/* Conversation Column */}
                 <div className="min-w-0 border-b border-slate-200 lg:border-b-0 lg:border-r">
                   <div className="space-y-5 p-5 sm:p-6">
-                    <div className="rounded-xl bg-slate-50 p-4">
-                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
-                        Ticket description
+                    {/* Primary Ticket Description */}
+                    <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4">
+                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Initial Ticket Request
                       </p>
                       <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                        {selectedTicket.description}
+                        {selectedTicket.messages?.[0]?.content ||
+                          "No initial description provided."}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pt-2">
                       <MessageCircle size={17} className="text-[#5a941c]" />
-                      <h3 className="font-bold text-slate-900">Conversation</h3>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                        {selectedTicket.messages.length}
+                      <h3 className="font-bold text-slate-900">
+                        Conversation Thread
+                      </h3>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                        {selectedTicket.messages?.length || 0}
                       </span>
                     </div>
 
-                    {selectedTicket.messages.map((message) => {
-                      const isSupport = message.role === "support";
+                    {/* Messages List */}
+                    <div className="space-y-4">
+                      {(!selectedTicket.messages ||
+                        selectedTicket.messages.length === 0) && (
+                          <p className="text-center py-6 text-sm text-slate-400">
+                            No messages in this conversation yet.
+                          </p>
+                        )}
 
-                      return (
-                        <div
-                          key={message.id}
-                          className={`flex gap-3 ${
-                            isSupport ? "flex-row-reverse" : ""
-                          }`}
-                        >
+                      {selectedTicket.messages?.map((message, idx) => {
+                        const isSupport =
+                          message.senderRole === "PLATFORM_ADMIN";
+                        const senderName =
+                          message.senderName ||
+                          (isSupport
+                            ? "VexChat Support Team"
+                            : selectedTicket.customerName || "Customer");
+
+                        return (
                           <div
-                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                              isSupport
-                                ? "bg-[#88da1c] text-[#20320d]"
-                                : "bg-slate-100 text-slate-700"
-                            }`}
+                            key={
+                              message._id ||
+                              message.id ||
+                              `msg-${idx}-${message.createdAt}`
+                            }
+                            className={`flex gap-3 ${isSupport ? "flex-row-reverse" : ""
+                              }`}
                           >
-                            {getInitials(message.sender)}
-                          </div>
-
-                          <div
-                            className={`min-w-0 max-w-[85%] ${
-                              isSupport ? "text-right" : ""
-                            }`}
-                          >
-                            <div className="mb-1 flex flex-wrap items-center gap-2">
-                              {!isSupport && (
-                                <span className="text-sm font-bold text-slate-800">
-                                  {message.sender}
-                                </span>
-                              )}
-
-                              {isSupport && (
-                                <span className="ml-auto text-sm font-bold text-slate-800">
-                                  {message.sender}
-                                </span>
-                              )}
-
-                              <span className="text-[11px] text-slate-400">
-                                {formatDate(message.createdAt)}
-                              </span>
+                            <div
+                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-sm ${isSupport
+                                  ? "bg-[#88da1c] text-[#20320d]"
+                                  : "bg-slate-200 text-slate-700"
+                                }`}
+                            >
+                              {getInitials(senderName)}
                             </div>
 
                             <div
-                              className={`rounded-2xl px-4 py-3 text-left text-sm leading-6 ${
-                                isSupport
-                                  ? "rounded-tr-sm bg-[#effbdd] text-[#29450c]"
-                                  : "rounded-tl-sm bg-slate-100 text-slate-700"
-                              }`}
+                              className={`min-w-0 max-w-[85%] ${isSupport ? "text-right" : ""
+                                }`}
                             >
-                              {message.message}
+                              <div className="mb-1 flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`text-sm font-bold ${isSupport
+                                      ? "ml-auto text-[#2e520d]"
+                                      : "text-slate-800"
+                                    }`}
+                                >
+                                  {senderName}
+                                </span>
+
+                                <span className="text-[11px] text-slate-400">
+                                  {formatDate(message.createdAt)}
+                                </span>
+                              </div>
+
+                              <div
+                                className={`rounded-2xl px-4 py-3 text-left text-sm leading-6 shadow-xs ${isSupport
+                                    ? "rounded-tr-sm bg-[#effbdd] text-[#29450c] border border-[#c5ed98]/50"
+                                    : "rounded-tl-sm bg-slate-100 text-slate-800"
+                                  }`}
+                              >
+                                {message.content}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
 
+                  {/* Reply Form */}
                   <form
                     onSubmit={handleSendReply}
                     className="border-t border-slate-200 bg-slate-50/70 p-5"
@@ -485,36 +841,53 @@ export default function SupportPage() {
                       htmlFor="ticket-reply"
                       className="mb-2 block text-sm font-bold text-slate-800"
                     >
-                      Write a reply
+                      Write a response
                     </label>
 
                     <textarea
                       id="ticket-reply"
                       value={reply}
                       onChange={(event) => setReply(event.target.value)}
-                      placeholder="Type your response..."
+                      placeholder="Type your response to the support team..."
                       rows={3}
-                      className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20"
+                      disabled={isSendingReply}
+                      className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20 disabled:bg-slate-100"
                     />
 
-                    <div className="mt-3 flex justify-end">
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-xs text-slate-400">
+                        {selectedTicket.status === "RESOLVED" ||
+                          selectedTicket.status === "CLOSED"
+                          ? "Replying will automatically reopen this ticket."
+                          : "Our team will be notified immediately."}
+                      </p>
+
                       <button
                         type="submit"
-                        disabled={!reply.trim()}
-                        className="inline-flex items-center gap-2 rounded-xl bg-[#88da1c] px-4 py-2.5 text-sm font-bold text-[#20320d] transition hover:bg-[#79c516] disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={!reply.trim() || isSendingReply}
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#88da1c] px-5 py-2.5 text-sm font-bold text-[#20320d] transition hover:bg-[#79c516] disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <Send size={15} />
-                        Add Reply
+                        {isSendingReply ? (
+                          <>
+                            <Loader2 size={15} className="animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Send size={15} />
+                            Send Reply
+                          </>
+                        )}
                       </button>
                     </div>
                   </form>
                 </div>
 
-                {/* Ticket properties */}
-                <aside className="space-y-6 p-5 sm:p-6">
+                {/* Sidebar Properties */}
+                <aside className="space-y-6 p-5 sm:p-6 bg-slate-50/40">
                   <div>
                     <h3 className="mb-4 font-bold text-slate-900">
-                      Ticket Properties
+                      Ticket Controls
                     </h3>
 
                     <label className="mb-2 block text-xs font-semibold text-slate-500">
@@ -523,17 +896,17 @@ export default function SupportPage() {
 
                     <select
                       value={selectedTicket.status}
+                      disabled={isUpdatingStatus}
                       onChange={(event) =>
-                        updateTicketStatus(
-                          selectedTicket.id,
-                          event.target.value as TicketStatus,
+                        handleUpdateStatus(
+                          event.target.value as SupportTicketStatus,
                         )
                       }
-                      className="mb-4 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none focus:border-[#88da1c]"
+                      className="mb-4 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-[#88da1c] disabled:opacity-50"
                     >
-                      {ticketStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
+                      {TICKET_STATUSES.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
                         </option>
                       ))}
                     </select>
@@ -544,17 +917,17 @@ export default function SupportPage() {
 
                     <select
                       value={selectedTicket.priority}
+                      disabled={isUpdatingPriority}
                       onChange={(event) =>
-                        updateTicketPriority(
-                          selectedTicket.id,
-                          event.target.value as TicketPriority,
+                        handleUpdatePriority(
+                          event.target.value as SupportTicketPriority,
                         )
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none focus:border-[#88da1c]"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-[#88da1c] disabled:opacity-50"
                     >
-                      {ticketPriorities.map((priority) => (
-                        <option key={priority} value={priority}>
-                          {priority}
+                      {TICKET_PRIORITIES.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {p.label}
                         </option>
                       ))}
                     </select>
@@ -562,20 +935,20 @@ export default function SupportPage() {
 
                   <div className="border-t border-slate-200 pt-5">
                     <h3 className="mb-4 font-bold text-slate-900">
-                      Customer Details
+                      Customer Information
                     </h3>
 
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#effbdd] font-bold text-[#426d14]">
-                        {getInitials(selectedTicket.customer)}
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#effbdd] font-bold text-[#426d14]">
+                        {getInitials(selectedTicket.customerName)}
                       </div>
 
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-slate-900">
-                          {selectedTicket.customer}
+                          {selectedTicket.customerName}
                         </p>
                         <p className="truncate text-xs text-slate-500">
-                          {selectedTicket.email}
+                          {selectedTicket.customerEmail || "No email provided"}
                         </p>
                       </div>
                     </div>
@@ -590,7 +963,7 @@ export default function SupportPage() {
                       <div>
                         <p className="text-xs text-slate-400">Category</p>
                         <p className="mt-1 font-medium text-slate-700">
-                          {selectedTicket.category}
+                          {selectedTicket.category || "Technical Issue"}
                         </p>
                       </div>
 
@@ -607,31 +980,50 @@ export default function SupportPage() {
                           {formatDate(selectedTicket.updatedAt)}
                         </p>
                       </div>
+
+                      <div>
+                        <p className="text-xs text-slate-400">Assigned Team</p>
+                        <p className="mt-1 font-medium text-slate-700">
+                          {selectedTicket.assignedAdmin?.name ||
+                            "VexChat Customer Support"}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  {selectedTicket.status !== "Resolved" && (
+                  {selectedTicket.status !== "RESOLVED" &&
+                    selectedTicket.status !== "CLOSED" ? (
                     <button
                       type="button"
-                      onClick={() =>
-                        updateTicketStatus(selectedTicket.id, "Resolved")
-                      }
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#b8e98b] bg-[#effbdd] px-4 py-3 text-sm font-bold text-[#355c11] transition hover:bg-[#e3f8c9]"
+                      disabled={isUpdatingStatus}
+                      onClick={() => handleUpdateStatus("RESOLVED")}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#b8e98b] bg-[#effbdd] px-4 py-3 text-sm font-bold text-[#355c11] transition hover:bg-[#e3f8c9] disabled:opacity-50"
                     >
                       <Check size={16} />
                       Mark as Resolved
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isUpdatingStatus}
+                      onClick={() => handleUpdateStatus("OPEN")}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      <RefreshCw size={15} />
+                      Reopen Ticket
                     </button>
                   )}
                 </aside>
               </div>
             </section>
           ) : (
+            /* Tickets Table / List View */
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              {/* Search and filters */}
+              {/* Search and Filters Bar */}
               <div className="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
-                    All Tickets
+                    Workspace Tickets
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
                     {filteredTickets.length} ticket
@@ -656,179 +1048,220 @@ export default function SupportPage() {
 
                   <select
                     value={statusFilter}
-                    onChange={(event) =>
-                      setStatusFilter(
-                        event.target.value as "All" | TicketStatus,
-                      )
-                    }
+                    onChange={(event) => setStatusFilter(event.target.value)}
                     aria-label="Filter by status"
                     className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#88da1c]"
                   >
-                    <option value="All">All statuses</option>
-                    {ticketStatuses.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
+                    <option value="ALL">All statuses</option>
+                    {TICKET_STATUSES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
                       </option>
                     ))}
                   </select>
 
                   <select
                     value={priorityFilter}
-                    onChange={(event) =>
-                      setPriorityFilter(
-                        event.target.value as "All" | TicketPriority,
-                      )
-                    }
+                    onChange={(event) => setPriorityFilter(event.target.value)}
                     aria-label="Filter by priority"
                     className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#88da1c]"
                   >
-                    <option value="All">All priorities</option>
-                    {ticketPriorities.map((priority) => (
-                      <option key={priority} value={priority}>
-                        {priority}
+                    <option value="ALL">All priorities</option>
+                    {TICKET_PRIORITIES.map((p) => (
+                      <option key={p.value} value={p.value}>
+                        {p.label}
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              {/* Ticket table */}
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[850px] text-left">
-                  <thead className="border-b border-slate-200 bg-[#f8faf5]">
-                    <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      <th className="px-5 py-4">Ticket</th>
-                      <th className="px-5 py-4">Customer</th>
-                      <th className="px-5 py-4">Priority</th>
-                      <th className="px-5 py-4">Status</th>
-                      <th className="px-5 py-4">Updated</th>
-                      <th className="px-5 py-4 text-right">Action</th>
-                    </tr>
-                  </thead>
+              {/* Loading Skeleton */}
+              {isLoading && (
+                <div className="p-8 text-center">
+                  <Loader2
+                    size={28}
+                    className="mx-auto animate-spin text-[#88da1c]"
+                  />
+                  <p className="mt-3 text-sm font-semibold text-slate-600">
+                    Loading support tickets...
+                  </p>
+                </div>
+              )}
 
-                  <tbody>
-                    {filteredTickets.map((ticketItem) => (
-                      <tr
-                        key={ticketItem.id}
-                        className="border-b border-slate-100 transition last:border-0 hover:bg-[#f9fcf4]"
-                      >
-                        <td className="max-w-[300px] px-5 py-4">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedTicketId(ticketItem.id)}
-                            className="text-left"
-                          >
-                            <p className="text-xs font-semibold text-slate-400">
-                              {ticketItem.id}
-                            </p>
-                            <p className="mt-1 truncate text-sm font-bold text-slate-800 transition hover:text-[#548b18]">
-                              {ticketItem.subject}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {ticketItem.category}
-                            </p>
-                          </button>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#effbdd] text-xs font-bold text-[#426d14]">
-                              {getInitials(ticketItem.customer)}
-                            </div>
-
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-slate-800">
-                                {ticketItem.customer}
-                              </p>
-                              <p className="mt-1 max-w-44 truncate text-xs text-slate-500">
-                                {ticketItem.email}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1.5 text-xs font-bold ${getPriorityStyle(
-                              ticketItem.priority,
-                            )}`}
-                          >
-                            {ticketItem.priority}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1.5 text-xs font-bold ${getStatusStyle(
-                              ticketItem.status,
-                            )}`}
-                          >
-                            {ticketItem.status}
-                          </span>
-                        </td>
-
-                        <td className="whitespace-nowrap px-5 py-4 text-xs text-slate-500">
-                          {formatDate(ticketItem.updatedAt)}
-                        </td>
-
-                        <td className="px-5 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedTicketId(ticketItem.id)}
-                            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-[#b8e98b] hover:bg-[#effbdd] hover:text-[#355c11]"
-                          >
-                            View Ticket
-                          </button>
-                        </td>
+              {/* Tickets Table */}
+              {!isLoading && (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[850px] text-left">
+                    <thead className="border-b border-slate-200 bg-[#f8faf5]">
+                      <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="px-5 py-4">Ticket</th>
+                        <th className="px-5 py-4">Customer</th>
+                        <th className="px-5 py-4">Priority</th>
+                        <th className="px-5 py-4">Status</th>
+                        <th className="px-5 py-4">Updated</th>
+                        <th className="px-5 py-4 text-right">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
 
-              {filteredTickets.length === 0 && (
+                    <tbody>
+                      {filteredTickets.map((ticketItem) => {
+                        const ticketId =
+                          ticketItem.ticketNumber ||
+                          ticketItem.id ||
+                          ticketItem._id ||
+                          "TKT";
+                        return (
+                          <tr
+                            key={ticketId}
+                            className="border-b border-slate-100 transition last:border-0 hover:bg-[#f9fcf4]"
+                          >
+                            <td className="max-w-[320px] px-5 py-4">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenTicket(ticketItem)}
+                                className="text-left group"
+                              >
+                                <p className="text-xs font-semibold text-slate-400">
+                                  {ticketId}
+                                </p>
+                                <p className="mt-1 truncate text-sm font-bold text-slate-800 transition group-hover:text-[#548b18]">
+                                  {ticketItem.subject}
+                                </p>
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {ticketItem.category || "Technical Issue"}
+                                </p>
+                              </button>
+                            </td>
+
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#effbdd] text-xs font-bold text-[#426d14]">
+                                  {getInitials(ticketItem.customerName)}
+                                </div>
+
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-slate-800">
+                                    {ticketItem.customerName}
+                                  </p>
+                                  <p className="mt-1 max-w-44 truncate text-xs text-slate-500">
+                                    {ticketItem.customerEmail || "No email"}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-4">
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${getPriorityStyle(
+                                  ticketItem.priority,
+                                )}`}
+                              >
+                                {getPriorityLabel(ticketItem.priority)}
+                              </span>
+                            </td>
+
+                            <td className="px-5 py-4">
+                              <span
+                                className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${getStatusStyle(
+                                  ticketItem.status,
+                                )}`}
+                              >
+                                {getStatusLabel(ticketItem.status)}
+                              </span>
+                            </td>
+
+                            <td className="whitespace-nowrap px-5 py-4 text-xs text-slate-500">
+                              {formatDate(ticketItem.updatedAt)}
+                            </td>
+
+                            <td className="px-5 py-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenTicket(ticketItem)}
+                                className="rounded-lg border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:border-[#b8e98b] hover:bg-[#effbdd] hover:text-[#355c11]"
+                              >
+                                View Ticket
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Empty state: No search results */}
+              {!isLoading && filteredTickets.length === 0 && tickets.length > 0 && (
                 <div className="px-5 py-16 text-center">
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#effbdd] text-[#548b18]">
                     <Search size={24} />
                   </div>
 
                   <h3 className="mt-4 font-bold text-slate-900">
-                    No tickets found
+                    No matching tickets found
                   </h3>
 
                   <p className="mt-2 text-sm text-slate-500">
-                    Try a different search term or update your filters.
+                    Try adjusting your search query or reset your filters.
                   </p>
 
                   <button
                     type="button"
                     onClick={() => {
                       setSearch("");
-                      setStatusFilter("All");
-                      setPriorityFilter("All");
+                      setStatusFilter("ALL");
+                      setPriorityFilter("ALL");
                     }}
-                    className="mt-4 rounded-lg px-4 py-2 text-sm font-bold text-[#548b18] hover:bg-[#effbdd]"
+                    className="mt-4 rounded-lg bg-[#effbdd] px-4 py-2 text-sm font-bold text-[#548b18] hover:bg-[#e4f8c6]"
                   >
-                    Clear filters
+                    Reset filters
+                  </button>
+                </div>
+              )}
+
+              {/* Empty state: No tickets in workspace yet */}
+              {!isLoading && tickets.length === 0 && (
+                <div className="px-5 py-16 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#effbdd] text-[#548b18]">
+                    <LifeBuoy size={24} />
+                  </div>
+
+                  <h3 className="mt-4 font-bold text-slate-900">
+                    No support tickets yet
+                  </h3>
+
+                  <p className="mt-2 max-w-sm mx-auto text-sm text-slate-500">
+                    Need help configuring WhatsApp, setting up campaigns, or
+                    resolving issues? Create your first ticket now.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(true)}
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#88da1c] px-5 py-2.5 text-sm font-bold text-[#20320d] shadow-sm transition hover:bg-[#79c516]"
+                  >
+                    <Plus size={17} />
+                    Create Support Ticket
                   </button>
                 </div>
               )}
             </section>
           )}
+
           <footer className="flex flex-col gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-            <p>VexChat Support Center</p>
-            {/* <p>
-              Primary brand color:{" "}
-              <span className="font-semibold text-slate-600">#88da1c</span>
-            </p> */}
+            <p>VexChat Customer Support Center</p>
+            <p>Live status & updates</p>
           </footer>
         </div>
+
         {/* Create Ticket Modal */}
         {showCreateModal && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-[2px]"
             onMouseDown={(event) => {
-              if (event.target === event.currentTarget) {
+              if (event.target === event.currentTarget && !isSubmittingTicket) {
                 setShowCreateModal(false);
               }
             }}
@@ -848,14 +1281,16 @@ export default function SupportPage() {
                     Create Support Ticket
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Describe the issue so the support team can help.
+                    Describe your issue and our engineering team will respond
+                    promptly.
                   </p>
                 </div>
 
                 <button
                   type="button"
+                  disabled={isSubmittingTicket}
                   onClick={() => setShowCreateModal(false)}
-                  className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
                   aria-label="Close modal"
                 >
                   <X size={19} />
@@ -879,9 +1314,10 @@ export default function SupportPage() {
                     required
                     value={newSubject}
                     onChange={(event) => setNewSubject(event.target.value)}
-                    placeholder="Briefly describe your issue"
+                    placeholder="Brief summary of the issue (e.g. WhatsApp Webhook failing)"
                     maxLength={120}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20"
+                    disabled={isSubmittingTicket}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20 disabled:bg-slate-50"
                   />
                 </div>
 
@@ -890,7 +1326,7 @@ export default function SupportPage() {
                     htmlFor="ticket-email"
                     className="mb-2 block text-sm font-semibold text-slate-700"
                   >
-                    Email address <span className="text-red-500">*</span>
+                    Contact Email <span className="text-red-500">*</span>
                   </label>
 
                   <input
@@ -900,7 +1336,8 @@ export default function SupportPage() {
                     value={newEmail}
                     onChange={(event) => setNewEmail(event.target.value)}
                     placeholder="you@company.com"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20"
+                    disabled={isSubmittingTicket}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20 disabled:bg-slate-50"
                   />
                 </div>
 
@@ -917,9 +1354,10 @@ export default function SupportPage() {
                       id="ticket-category"
                       value={newCategory}
                       onChange={(event) => setNewCategory(event.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-[#88da1c]"
+                      disabled={isSubmittingTicket}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-[#88da1c] disabled:bg-slate-50"
                     >
-                      {ticketCategories.map((category) => (
+                      {TICKET_CATEGORIES.map((category) => (
                         <option key={category} value={category}>
                           {category}
                         </option>
@@ -939,13 +1377,16 @@ export default function SupportPage() {
                       id="ticket-priority"
                       value={newPriority}
                       onChange={(event) =>
-                        setNewPriority(event.target.value as TicketPriority)
+                        setNewPriority(
+                          event.target.value as SupportTicketPriority,
+                        )
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-[#88da1c]"
+                      disabled={isSubmittingTicket}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-[#88da1c] disabled:bg-slate-50"
                     >
-                      {ticketPriorities.map((priority) => (
-                        <option key={priority} value={priority}>
-                          {priority}
+                      {TICKET_PRIORITIES.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {p.label}
                         </option>
                       ))}
                     </select>
@@ -967,8 +1408,9 @@ export default function SupportPage() {
                     maxLength={3000}
                     value={newDescription}
                     onChange={(event) => setNewDescription(event.target.value)}
-                    placeholder="Explain what happened and what you need help with..."
-                    className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20"
+                    placeholder="Provide details about what happened, steps to reproduce, or any error messages..."
+                    disabled={isSubmittingTicket}
+                    className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-[#88da1c] focus:ring-2 focus:ring-[#88da1c]/20 disabled:bg-slate-50"
                   />
 
                   <p className="mt-1 text-right text-xs text-slate-400">
@@ -979,39 +1421,62 @@ export default function SupportPage() {
                 <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
                   <button
                     type="button"
+                    disabled={isSubmittingTicket}
                     onClick={() => setShowCreateModal(false)}
-                    className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                   >
                     Cancel
                   </button>
 
                   <button
                     type="submit"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#88da1c] px-5 py-3 text-sm font-bold text-[#20320d] transition hover:bg-[#79c516]"
+                    disabled={isSubmittingTicket}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#88da1c] px-5 py-3 text-sm font-bold text-[#20320d] transition hover:bg-[#79c516] disabled:opacity-50"
                   >
-                    <Plus size={17} />
-                    Create Ticket
+                    {isSubmittingTicket ? (
+                      <>
+                        <Loader2 size={17} className="animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={17} />
+                        Submit Ticket
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
             </div>
           </div>
         )}
-        {/* Toast notification */}
+
+        {/* Toast Notification */}
         {toast && (
           <div
             role="status"
-            className="fixed bottom-5 right-5 z-[60] flex max-w-sm items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xl"
+            className="fixed bottom-5 right-5 z-[60] flex max-w-sm items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200"
           >
-            <div className="mt-0.5 rounded-full bg-[#effbdd] p-1">
-              <Check size={15} className="text-[#426d14]" />
+            <div
+              className={`mt-0.5 rounded-full p-1 ${toast.type === "success"
+                  ? "bg-[#effbdd] text-[#426d14]"
+                  : "bg-red-50 text-red-600"
+                }`}
+            >
+              {toast.type === "success" ? (
+                <Check size={15} />
+              ) : (
+                <AlertCircle size={15} />
+              )}
             </div>
 
-            <p className="flex-1 text-sm leading-5 text-slate-700">{toast}</p>
+            <p className="flex-1 text-sm leading-5 text-slate-700">
+              {toast.message}
+            </p>
 
             <button
               type="button"
-              onClick={() => setToast("")}
+              onClick={() => setToast(null)}
               className="rounded-md p-1 text-slate-400 hover:bg-slate-100"
               aria-label="Dismiss notification"
             >

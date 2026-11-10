@@ -45,13 +45,19 @@ export interface HealthCheckResponse {
 
 // ─── Auth Module Types ───────────────────────────────────────────────────────
 
-export type UserRole = "OWNER" | "ADMIN" | "AGENT";
+export type UserRole =
+  | "OWNER"
+  | "ADMIN"
+  | "AGENT"
+  | "SUPER_ADMIN"
+  | "FINANCE_ADMIN";
 
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
   role: UserRole | string;
+  platformRole: UserRole;
   isEmailVerified?: boolean;
   createdAt?: string;
 }
@@ -271,7 +277,6 @@ export interface WhatsAppConfigStatus {
   };
 }
 
-
 export interface SendWhatsAppTemplateMessageInput {
   conversationId: string;
   templateId: string;
@@ -432,6 +437,7 @@ export type WhatsAppMessageType =
   | "LOCATION"
   | "TEMPLATE"
   | "INTERACTIVE"
+  | "CALL"
   | "UNKNOWN";
 export type WhatsAppMessageStatus =
   | "RECEIVED"
@@ -453,6 +459,7 @@ export interface WhatsAppMessageItem {
   text?: string;
   mediaId?: string;
   mediaMimeType?: string;
+  callLogId?: string;
   senderId?: string;
   timestamp: string;
   errorMessage?: string;
@@ -574,4 +581,374 @@ export interface DashboardStatsData {
   recentConversations: DashboardRecentConversationItem[];
   messageActivity: DashboardMessageActivityItem[];
 }
+
+// ─── Workspace Analytics Module Types ───────────────────────────────────────
+
+export type AnalyticsPeriod = "7d" | "30d" | "90d";
+
+export interface WorkspaceAnalyticsSummary {
+  totalSent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+  pending: number;
+}
+
+export interface WorkspaceAnalyticsTrend {
+  totalSentChange: string;
+  totalSentPositive: boolean;
+  deliveredChange: string;
+  deliveredPositive: boolean;
+  readChange: string;
+  readPositive: boolean;
+  failedChange: string;
+  failedPositive: boolean;
+}
+
+export interface WorkspaceAnalyticsRates {
+  deliveryRate: number;
+  readRate: number;
+  failureRate: number;
+}
+
+export interface WorkspaceAnalyticsTimeSeriesItem {
+  date: string;
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+}
+
+export interface WorkspaceAnalyticsStatusItem {
+  name: string;
+  value: number;
+}
+
+export interface WorkspaceAnalyticsCampaignItem {
+  id: string;
+  name: string;
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface WorkspaceAnalyticsData {
+  period: AnalyticsPeriod;
+  summary: WorkspaceAnalyticsSummary;
+  trends: WorkspaceAnalyticsTrend;
+  rates: WorkspaceAnalyticsRates;
+  chartData: WorkspaceAnalyticsTimeSeriesItem[];
+  statusData: WorkspaceAnalyticsStatusItem[];
+  campaigns: WorkspaceAnalyticsCampaignItem[];
+}
+
+// ─── Campaign Module Types ──────────────────────────────────────────────────
+
+export type BackendCampaignStatus =
+  | "DRAFT"
+  | "SCHEDULED"
+  | "PROCESSING"
+  | "PAUSED"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
+
+export type CampaignAudienceMode = "ALL_CONTACTS" | "SELECTED_CONTACTS";
+
+export interface CampaignAudience {
+  mode: CampaignAudienceMode;
+  contactIds: string[];
+}
+
+export interface CampaignItem {
+  id: string;
+  workspaceId: string;
+  name: string;
+  description: string;
+  whatsappAccountId: string;
+  templateId: string;
+  audience: CampaignAudience;
+  status: BackendCampaignStatus;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdBy: string;
+  totalRecipients: number;
+  sentCount: number;
+  deliveredCount: number;
+  readCount: number;
+  failedCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListCampaignsParams {
+  search?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ListCampaignsResponseData {
+  campaigns: CampaignItem[];
+  pagination: PaginationMetadata;
+}
+
+export interface CreateCampaignPayload {
+  name: string;
+  description?: string;
+  whatsappAccountId: string;
+  templateId: string;
+  audience: {
+    mode: CampaignAudienceMode;
+    contactIds?: string[];
+  };
+}
+
+export interface UpdateCampaignPayload {
+  name?: string;
+  description?: string;
+  whatsappAccountId?: string;
+  templateId?: string;
+  audience?: {
+    mode: CampaignAudienceMode;
+    contactIds?: string[];
+  };
+}
+
+export interface ScheduleCampaignPayload {
+  scheduledAt: string;
+}
+
+export interface CampaignRecipientItem {
+  id: string;
+  campaignId: string;
+  contactId: string;
+  phoneNumber: string;
+  status: "PENDING" | "PROCESSING" | "SENT" | "DELIVERED" | "READ" | "FAILED";
+  providerMessageId: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  readAt: string | null;
+  failedAt: string | null;
+}
+
+export interface ListCampaignRecipientsResponseData {
+  recipients: CampaignRecipientItem[];
+  pagination: PaginationMetadata;
+}
+
+// ─── Workspace Support Ticket Types ─────────────────────────────────────────
+
+export type SupportTicketPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+export type SupportTicketStatus =
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "RESOLVED"
+  | "CLOSED";
+
+export interface SupportTicketAttachment {
+  filename: string;
+  url: string;
+}
+
+export interface SupportTicketMessage {
+  _id?: string;
+  id?: string;
+  senderId: string;
+  senderRole: "CUSTOMER" | "PLATFORM_ADMIN";
+  senderName?: string;
+  content: string;
+  attachments?: SupportTicketAttachment[];
+  createdAt: string;
+}
+
+export interface SupportTicketItem {
+  _id?: string;
+  id?: string;
+  ticketNumber: string;
+  workspaceId: string;
+  workspaceName: string;
+  customerName: string;
+  customerEmail: string;
+  subject: string;
+  category?: string;
+  priority: SupportTicketPriority;
+  status: SupportTicketStatus;
+  assignedAdmin?: {
+    _id: string;
+    name: string;
+    email: string;
+    platformRole?: string;
+  } | null;
+  messages: SupportTicketMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupportTicketStats {
+  total: number;
+  open: number;
+  inProgress: number;
+  resolved: number;
+}
+
+export interface ListSupportTicketsResponseData {
+  items: SupportTicketItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  stats?: SupportTicketStats;
+}
+
+export interface CreateSupportTicketPayload {
+  workspaceId?: string;
+  subject: string;
+  priority?: SupportTicketPriority;
+  category?: string;
+  description: string;
+  customerName?: string;
+  customerEmail?: string;
+}
+
+export interface AddSupportTicketMessagePayload {
+  content: string;
+  attachments?: SupportTicketAttachment[];
+}
+
+// ─── Workspace Settings Types ───────────────────────────────────────────────
+
+export interface BusinessProfile {
+  businessName: string;
+  businessEmail: string;
+  phoneNumber: string;
+  website: string;
+  industry: string;
+  timezone: string;
+  country: string;
+  description: string;
+}
+
+export interface WhatsAppConfiguration {
+  phoneNumberId: string;
+  businessAccountId: string;
+  displayPhoneNumber: string;
+  connectionStatus: "CONNECTED" | "DISCONNECTED" | "PENDING" | "ERROR";
+  webhookVerified?: boolean;
+}
+
+export interface NotificationPreferences {
+  emailNotifications: boolean;
+  campaignUpdates: boolean;
+  messageFailureAlerts: boolean;
+  teamActivityAlerts: boolean;
+  weeklyReports: boolean;
+  productUpdates: boolean;
+}
+
+export interface SecurityPreferences {
+  twoFactorEnabled: boolean;
+  loginAlerts: boolean;
+  sessionTimeout: string;
+}
+
+export interface ApiPreferences {
+  apiKey?: string;
+  webhookUrl: string;
+  webhookSecret?: string;
+  webhookEvents: string[];
+}
+
+export interface WorkspaceSettingsData {
+  _id?: string;
+  workspaceId: string;
+  business: BusinessProfile;
+  notifications: NotificationPreferences;
+  security: SecurityPreferences;
+  api: ApiPreferences;
+  updatedAt?: string;
+}
+
+export interface UpdateWorkspaceSettingsPayload {
+  business?: Partial<BusinessProfile>;
+  notifications?: Partial<NotificationPreferences>;
+  security?: Partial<SecurityPreferences>;
+  api?: Partial<ApiPreferences>;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
+// ─── Workspace Automation Types ───────────────────────────────────────────
+
+export type AutomationTriggerType =
+  | "NEW_CONTACT"
+  | "INCOMING_MESSAGE"
+  | "KEYWORD_MATCH"
+  | "AWAY_HOURS"
+  | "NO_REPLY";
+
+export type AutomationActionType =
+  | "SEND_MESSAGE"
+  | "SEND_TEMPLATE"
+  | "ASSIGN_AGENT"
+  | "ADD_TAGS"
+  | "CREATE_TICKET";
+
+export interface AutomationRuleActionConfig {
+  messageBody?: string;
+  templateName?: string;
+  templateLanguage?: string;
+  assignedUserId?: string;
+  tags?: string[];
+  ticketPriority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+}
+
+export interface AutomationRuleItem {
+  _id: string;
+  workspaceId: string;
+  name: string;
+  description?: string;
+  trigger: AutomationTriggerType;
+  keywords?: string[];
+  matchType?: "EXACT" | "CONTAINS" | "STARTS_WITH";
+  action: AutomationActionType;
+  actionConfig: AutomationRuleActionConfig;
+  isActive: boolean;
+  executionsCount: number;
+  lastExecutedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAutomationRulePayload {
+  name: string;
+  description?: string;
+  trigger: AutomationTriggerType;
+  keywords?: string[];
+  matchType?: "EXACT" | "CONTAINS" | "STARTS_WITH";
+  action: AutomationActionType;
+  actionConfig?: AutomationRuleActionConfig;
+  isActive?: boolean;
+}
+
+export interface UpdateAutomationRulePayload {
+  name?: string;
+  description?: string;
+  trigger?: AutomationTriggerType;
+  keywords?: string[];
+  matchType?: "EXACT" | "CONTAINS" | "STARTS_WITH";
+  action?: AutomationActionType;
+  actionConfig?: AutomationRuleActionConfig;
+  isActive?: boolean;
+}
+
 

@@ -12,8 +12,9 @@ interface AdminConfirmDialogProps {
   confirmText?: string;
   cancelText?: string;
   isDestructive?: boolean;
-  variant?: "destructive" | "warning" | "primary";
+  variant?: "destructive" | "warning" | "primary" | "info" | "danger";
   isLoading?: boolean;
+  loading?: boolean;
   children?: ReactNode;
 }
 
@@ -28,18 +29,22 @@ export default function AdminConfirmDialog({
   isDestructive = false,
   variant,
   isLoading = false,
+  loading = false,
   children,
 }: AdminConfirmDialogProps) {
+  const effectiveLoading = isLoading || loading;
   // Determine effective visual variant
+  const normalizedVariant =
+    variant === "info" ? "primary" : variant === "danger" ? "destructive" : variant;
   const effectiveVariant =
-    variant || (isDestructive ? "destructive" : "primary");
+    normalizedVariant || (isDestructive ? "destructive" : "primary");
 
   // Keyboard dismiss (Escape) & body scroll locking
   useEffect(() => {
     if (!open) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isLoading) {
+      if (e.key === "Escape" && !effectiveLoading) {
         onClose();
       }
     };
@@ -52,7 +57,7 @@ export default function AdminConfirmDialog({
       window.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = originalOverflow;
     };
-  }, [open, onClose, isLoading]);
+  }, [open, onClose, effectiveLoading]);
 
   if (!open) return null;
 
@@ -111,7 +116,7 @@ export default function AdminConfirmDialog({
           {renderIcon()}
           <button
             onClick={onClose}
-            disabled={isLoading}
+            disabled={effectiveLoading}
             className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50 focus:outline-hidden focus:ring-2 focus:ring-[#88da1c]"
             aria-label="Close dialog"
           >
@@ -139,7 +144,7 @@ export default function AdminConfirmDialog({
           <button
             type="button"
             onClick={onClose}
-            disabled={isLoading}
+            disabled={effectiveLoading}
             className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 focus:outline-hidden focus:ring-2 focus:ring-slate-300 transition-colors"
           >
             {cancelText}
@@ -147,10 +152,10 @@ export default function AdminConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={effectiveLoading}
             className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold shadow-xs focus:outline-hidden focus:ring-2 focus:ring-offset-2 transition-colors ${getConfirmButtonClasses()}`}
           >
-            {isLoading && (
+            {effectiveLoading && (
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
             )}
             <span>{confirmText}</span>

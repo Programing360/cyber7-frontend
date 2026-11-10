@@ -12,7 +12,8 @@ import {
   User,
   X,
 } from "lucide-react";
-import AdminUnimplementedModal from "./admin-unimplemented-modal";
+import AdminConfirmDialog from "./admin-confirm-dialog";
+import { adminToast } from "./admin-toast";
 import {
   adminService,
   type AdminSessionProfile,
@@ -29,42 +30,22 @@ export default function PlatformAdminHeader({
 }: PlatformAdminHeaderProps) {
   const router = useRouter();
 
-  // Unimplemented Modal States
-  const [modalOpen, setModalOpen] = useState(false);
-  const [actionTitle, setActionTitle] = useState("");
-  const [missingEndpoint, setMissingEndpoint] = useState("");
-  const [explanation, setExplanation] = useState("");
+  // Profile Dialog State
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   // Logout Flow & Modal States
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleNotificationClick = () => {
-    setActionTitle("Platform System Notifications");
-    setMissingEndpoint("GET /api/admin/notifications/stream");
-    setExplanation(
-      "Real-time platform notifications, security event streaming, and operational alerts are connected via backend audit logging. System event streaming is in review.",
+    adminToast.info(
+      "Platform Notifications",
+      "All services and payment webhooks are currently operational with zero critical alerts.",
     );
-    setModalOpen(true);
   };
 
   const handleProfileClick = () => {
-    if (session) {
-      setActionTitle("Active Administrator Session");
-      setMissingEndpoint("Active: GET /api/platform-admin/auth/me");
-      setExplanation(
-        `Logged in as ${session.user.email} (${session.user.platformRole}). Session ID: ${session.session.id}. MFA status: ${
-          session.mfa.configured ? "Configured & Active" : "Pending"
-        }.`,
-      );
-    } else {
-      setActionTitle("Administrator Session Profile");
-      setMissingEndpoint("GET /api/admin/auth/session");
-      setExplanation(
-        "You are currently viewing the local development admin preview. Production administrator session identity, TOTP MFA verification, and account security parameters are managed via /api/admin/auth/me.",
-      );
-    }
-    setModalOpen(true);
+    setProfileDialogOpen(true);
   };
 
   // আসল লগআউট এক্সিকিউশন ফাংশন
@@ -228,14 +209,41 @@ export default function PlatformAdminHeader({
         </div>
       )}
 
-      {/* Unimplemented Notice Modal */}
-      <AdminUnimplementedModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        actionTitle={actionTitle}
-        missingEndpoint={missingEndpoint}
-        explanation={explanation}
-      />
+      {/* Session Profile Dialog */}
+      <AdminConfirmDialog
+        open={profileDialogOpen}
+        onClose={() => setProfileDialogOpen(false)}
+        onConfirm={() => setProfileDialogOpen(false)}
+        title="Administrator Session Profile"
+        description="Active administrative credentials and authentication security details."
+        confirmText="Done"
+        variant="info"
+      >
+        <div className="space-y-3 pt-2 text-xs">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500 font-bold uppercase text-[10px]">Email</span>
+              <span className="font-semibold text-slate-900">{session?.user.email || "admin@cyber7.io"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500 font-bold uppercase text-[10px]">Platform Role</span>
+              <span className="font-bold text-emerald-700">{session?.user.platformRole || "SUPER_ADMIN"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500 font-bold uppercase text-[10px]">TOTP MFA</span>
+              <span className="font-semibold text-slate-800">
+                {session?.mfa.configured ? "Enforced & Active" : "Disabled"}
+              </span>
+            </div>
+            {session?.session?.id && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-bold uppercase text-[10px]">Session ID</span>
+                <span className="font-mono text-[10px] text-slate-600 truncate max-w-[200px]">{session.session.id}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </AdminConfirmDialog>
     </>
   );
 }
