@@ -160,3 +160,42 @@ export const CITY_BANK_CONFIG: CityBankDetailsConfig = {
     "Bank transfer instructions are currently unavailable. Please contact your workspace administrator.",
 };
 
+export interface MyServicesSubscription {
+  planName: string;
+  planCode: string;
+  amount: number;
+  currency: string;
+  status: string;
+  invoiceNumber: string;
+  paymentMethod: string;
+  paymentId: string;
+  startDate: string;
+  expiryDate: string;
+  isPaid: boolean;
+  billingCycle: string;
+  limits: {
+    maxWhatsAppNumbers: number;
+    maxTeamMembers: number;
+  };
+}
+
+export interface MyServicesUserInfo {
+  name: string;
+  email: string;
+  role: string;
+  subscriptionStatus: string;
+  isPaid: boolean;
+}
+
+export interface MyServicesFeature {
+  title: string;
+  desc: string;
+  icon: string;
+}
+
+export interface MyServicesData {
+  subscription: MyServicesSubscription;
+  userInfo: MyServicesUserInfo;
+  unlockedFeatures: MyServicesFeature[];
+}
+

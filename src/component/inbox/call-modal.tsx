@@ -52,6 +52,8 @@ export default function CallModal({
   // 🔥 ফিক্স: callState idle হলে বা isOpen false হলে রেন্ডার হবে না
   if (!isOpen || callState === "idle") return null;
 
+  console.log(callState);
+
   const currentCall: ActiveCallData = call || {
     name: "WhatsApp Caller",
     phone: "Unknown",

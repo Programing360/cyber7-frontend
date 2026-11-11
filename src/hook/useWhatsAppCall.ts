@@ -221,47 +221,75 @@ export function useWhatsAppCall({
     };
   }, [callState]);
 
-  const attachPeerHandlers = useCallback(
-    (peer: RTCPeerConnection) => {
-      peer.ontrack = async (event) => {
-        const stream = event.streams?.[0];
-        if (remoteAudioRef.current && stream) {
-          remoteAudioRef.current.srcObject = stream;
-          try {
-            await remoteAudioRef.current.play();
-          } catch (error) {
-            console.warn(
-              "[WhatsApp Call] Remote audio autoplay blocked:",
-              error,
-            );
-          }
-        }
-      };
+  // const attachPeerHandlers = useCallback(
+  //   (peer: RTCPeerConnection) => {
+  //     peer.ontrack = async (event) => {
+  //       const stream = event.streams?.[0];
+  //       if (remoteAudioRef.current && stream) {
+  //         remoteAudioRef.current.srcObject = stream;
+  //         try {
+  //           await remoteAudioRef.current.play();
+  //         } catch (error) {
+  //           console.warn(
+  //             "[WhatsApp Call] Remote audio autoplay blocked:",
+  //             error,
+  //           );
+  //         }
+  //       }
+  //     };
 
-      peer.onconnectionstatechange = () => {
-        if (peer.connectionState === "connected") {
-          markCallConnected();
-        } else if (
-          peer.connectionState === "failed" ||
-          peer.connectionState === "closed"
-        ) {
-          if (!endingRef.current) {
-            setCallError("WebRTC connection failed or closed.");
-          }
-        }
-      };
+  //     peer.onconnectionstatechange = () => {
+  //       if (peer.connectionState === "connected") {
+  //         markCallConnected();
+  //       } else if (
+  //         peer.connectionState === "failed" ||
+  //         peer.connectionState === "closed"
+  //       ) {
+  //         if (!endingRef.current) {
+  //           setCallError("WebRTC connection failed or closed.");
+  //         }
+  //       }
+  //     };
 
-      peer.oniceconnectionstatechange = () => {
-        if (
-          peer.iceConnectionState === "connected" ||
-          peer.iceConnectionState === "completed"
-        ) {
-          markCallConnected();
+  //     peer.oniceconnectionstatechange = () => {
+  //       if (
+  //         peer.iceConnectionState === "connected" ||
+  //         peer.iceConnectionState === "completed"
+  //       ) {
+  //         markCallConnected();
+  //       }
+  //     };
+  //   },
+  //   [markCallConnected],
+  // );
+
+  const attachPeerHandlers = useCallback((peer: RTCPeerConnection) => {
+    peer.ontrack = async (event) => {
+      const stream = event.streams?.[0];
+
+      if (remoteAudioRef.current && stream) {
+        remoteAudioRef.current.srcObject = stream;
+
+        try {
+          await remoteAudioRef.current.play();
+        } catch (error) {
+          console.warn("[WhatsApp Call] Remote audio autoplay blocked:", error);
         }
-      };
-    },
-    [markCallConnected],
-  );
+      }
+    };
+
+    peer.onconnectionstatechange = () => {
+      console.info("[WhatsApp Call] WebRTC Connection:", peer.connectionState);
+
+      if (peer.connectionState === "failed") {
+        setCallError("WebRTC connection failed.");
+      }
+    };
+
+    peer.oniceconnectionstatechange = () => {
+      console.info("[WhatsApp Call] ICE Connection:", peer.iceConnectionState);
+    };
+  }, []);
 
   // Authenticated socket connection and event listeners
   useEffect(() => {
@@ -411,10 +439,9 @@ export function useWhatsAppCall({
     );
 
     socket.on("call-accepted", (data: { callId?: string }) => {
-      if (
-        callDirection === "incoming" &&
-        (!data?.callId || data.callId === activeCallIdRef.current)
-      ) {
+      if (data?.callId && data.callId === activeCallIdRef.current) {
+        console.info("[WhatsApp Call] User accepted the call:", data.callId);
+
         markCallConnected();
       }
     });

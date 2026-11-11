@@ -11,6 +11,7 @@ import type {
   InitiatePaymentPayload,
   InitiatePaymentResponseData,
   InvoiceItem,
+  MyServicesData,
   PaymentItem,
   PlanCode,
   SubmitBankTransferPayload,
@@ -26,6 +27,19 @@ export class BillingService {
     );
     if (!res.data) {
       throw new Error("No billing overview data returned from server");
+    }
+    return res.data;
+  }
+
+  /**
+   * Retrieves active services, subscription, profile, and unlocked features for a workspace.
+   */
+  async getMyServices(workspaceId: string): Promise<MyServicesData> {
+    const res = await apiClient.get<ApiResponse<MyServicesData>>(
+      `/workspaces/${workspaceId}/billing/my-services`,
+    );
+    if (!res.data) {
+      throw new Error(res.message || "Failed to retrieve my-services data from server");
     }
     return res.data;
   }

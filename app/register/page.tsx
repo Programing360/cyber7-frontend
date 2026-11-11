@@ -93,7 +93,7 @@ export default function RegisterPage() {
       });
 
       const data = await res.json();
-      console.log(data);
+      // console.log(data);
 
       if (!res.ok) {
         throw new Error(data.message || "Failed to send verification OTP.");

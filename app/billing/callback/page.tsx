@@ -25,12 +25,14 @@ function PaymentCallbackContent() {
   const { activeWorkspace, isLoading: isWorkspaceLoading } = useWorkspace();
 
   // Capture public reference keys from initial URL (status query parameter is strictly ignored)
-  const initialPaymentId = useRef(searchParams.get("paymentId") || "").current;
-  const initialInvoiceNumber = useRef(searchParams.get("invoiceNumber") || "").current;
+  const initialPaymentId = searchParams.get("paymentId") || "";
+  const initialInvoiceNumber = searchParams.get("invoiceNumber") || "";
 
   const [isVerifying, setIsVerifying] = useState(true);
   const [pollAttempt, setPollAttempt] = useState(0);
-  const [verifiedPayment, setVerifiedPayment] = useState<PaymentItem | null>(null);
+  const [verifiedPayment, setVerifiedPayment] = useState<PaymentItem | null>(
+    null,
+  );
   const [errorMessage, setErrorMessage] = useState("");
   const [finalStatus, setFinalStatus] = useState<
     "VERIFIED_SUCCESS" | "VERIFIED_FAILED" | "PENDING_VERIFICATION" | "INVALID"
@@ -133,7 +135,12 @@ function PaymentCallbackContent() {
     } else {
       setIsVerifying(false);
     }
-  }, [activeWorkspace, isWorkspaceLoading, initialPaymentId, initialInvoiceNumber]);
+  }, [
+    activeWorkspace,
+    isWorkspaceLoading,
+    initialPaymentId,
+    initialInvoiceNumber,
+  ]);
 
   useEffect(() => {
     if (!isWorkspaceLoading && activeWorkspace) {
@@ -173,8 +180,8 @@ function PaymentCallbackContent() {
                 Payment Confirmed!
               </h2>
               <p className="text-sm text-slate-600 max-w-sm mx-auto">
-                Your subscription has been successfully activated and all workspace
-                features are unlocked.
+                Your subscription has been successfully activated and all
+                workspace features are unlocked.
               </p>
             </div>
 
@@ -183,7 +190,9 @@ function PaymentCallbackContent() {
               <div className="flex justify-between">
                 <span className="text-slate-500">Invoice Number:</span>
                 <span className="font-mono font-bold text-slate-800">
-                  {verifiedPayment?.invoiceNumber || initialInvoiceNumber || "—"}
+                  {verifiedPayment?.invoiceNumber ||
+                    initialInvoiceNumber ||
+                    "—"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -195,7 +204,9 @@ function PaymentCallbackContent() {
               <div className="flex justify-between">
                 <span className="text-slate-500">Amount Paid:</span>
                 <span className="font-bold text-slate-900">
-                  {verifiedPayment ? `৳ ${verifiedPayment.amount.toLocaleString()} BDT` : "—"}
+                  {verifiedPayment
+                    ? `৳ ${verifiedPayment.amount.toLocaleString()} BDT`
+                    : "—"}
                 </span>
               </div>
               {verifiedPayment?.gatewayData?.trxID && (
@@ -235,8 +246,8 @@ function PaymentCallbackContent() {
                 Payment Verification in Progress
               </h2>
               <p className="text-sm text-slate-600 max-w-sm mx-auto">
-                We received your return from checkout. Our server is awaiting authoritative
-                confirmation from the gateway.
+                We received your return from checkout. Our server is awaiting
+                authoritative confirmation from the gateway.
               </p>
             </div>
 
@@ -280,10 +291,13 @@ function PaymentCallbackContent() {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 text-left space-y-1">
-              <p className="font-semibold text-slate-800">No Subscription Debited</p>
+              <p className="font-semibold text-slate-800">
+                No Subscription Debited
+              </p>
               <p>
-                Your card or wallet was not charged, or if a temporary hold occurred, it
-                will be automatically released by the payment provider. You may try again at any time.
+                Your card or wallet was not charged, or if a temporary hold
+                occurred, it will be automatically released by the payment
+                provider. You may try again at any time.
               </p>
             </div>
 
@@ -317,4 +331,3 @@ export default function PaymentCallbackPage() {
     </DashboardLayout>
   );
 }
-

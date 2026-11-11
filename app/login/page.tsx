@@ -54,8 +54,6 @@ export default function LoginPage() {
         password,
       });
 
-      console.log("Authenticated User:", loggedInUser);
-      console.log("Platform Role:", loggedInUser.platformRole);
 
       if (loggedInUser?.platformRole === "SUPER_ADMIN") {
         router.replace("/admin");

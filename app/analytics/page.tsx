@@ -337,7 +337,7 @@ export default function AnalyticsPage() {
         </section>
 
         {/* Real-time Live Status Banner */}
-        <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm">
+        <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200/80 bg-[#e3f6c9] p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm">
           <div className="flex items-center gap-3">
             <span className="relative flex h-3 w-3">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>

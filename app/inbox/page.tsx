@@ -89,7 +89,7 @@ export default function InboxPage() {
     setIsLoadingCallLogs(true);
     try {
       const logs = await callService.getCallLogs(activeWorkspace.id);
-      console.log(logs);
+      // console.log(logs);
       setCallLogs(logs);
     } catch (err) {
       console.warn("Failed to fetch call logs:", err);
@@ -113,7 +113,7 @@ export default function InboxPage() {
       fetchConversations();
     },
   });
-  console.log(whatsAppCall);
+ 
   const handleInitiateCall = (name: string, phone: string) => {
     whatsAppCall.startCall({ name, phone });
   };

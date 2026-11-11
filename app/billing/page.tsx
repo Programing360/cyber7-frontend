@@ -306,7 +306,7 @@ export default function BillingPage() {
 
   const activeSub = overview?.subscription;
   const currentPlanCode = activeSub?.planCode || null;
-
+  console.log(overview);
   // --------------------------------------------------
   // Loading Skeleton
   // --------------------------------------------------

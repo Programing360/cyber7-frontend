@@ -58,7 +58,7 @@ export default function PlatformAdminLoginPage() {
 
         if (res.ok) {
           const result = await res.json();
-          console.log(result);
+          // console.log(result);
 
           if (
             result.authenticated &&

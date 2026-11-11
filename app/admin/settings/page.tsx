@@ -325,7 +325,7 @@ export default function AdminSettingsPage() {
             </span>
             <div>
               <strong className="font-bold">Authoritative Governance Connected:</strong>{" "}
-              Live runtime configuration synced with MongoDB singleton. Mutations take immediate effect across BFF and backend worker pools.
+              Live runtime configuration synced.
             </div>
           </div>
 
@@ -872,7 +872,7 @@ export default function AdminSettingsPage() {
 
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="font-medium text-slate-600">MongoDB Connection</span>
+                <span className="font-medium text-slate-600">Connection</span>
                 <span className="inline-flex items-center gap-1.5 font-bold text-emerald-700">
                   <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
                   Connected (Pool Active)
@@ -911,7 +911,7 @@ export default function AdminSettingsPage() {
         onClose={() => setPurgeDialogOpen(false)}
         onConfirm={handleConfirmPurgeSessions}
         title="Flush Expired Admin Sessions"
-        description="Permanently remove all expired administrative sessions from MongoDB collection to maintain ledger cleanliness."
+        description="Permanently remove all expired administrative sessions from database collection to maintain ledger cleanliness."
         confirmText="Flush Now"
         variant="warning"
         loading={purging}

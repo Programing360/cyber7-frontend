@@ -685,9 +685,9 @@ export default function AdminSupportPage() {
                   </td>
                 </tr>
               ) : (
-                tickets.map((t) => (
+                tickets.map((t, index) => (
                   <tr
-                    key={t.id}
+                    key={index}
                     className="hover:bg-slate-50/80 transition-colors"
                   >
                     <td className="px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">

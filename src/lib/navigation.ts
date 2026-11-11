@@ -12,6 +12,7 @@ import {
   Headset,
   Plug,
   type LucideIcon,
+  Cloud,
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -79,6 +80,11 @@ export const navigationGroups: NavigationGroup[] = [
         label: "Billing",
         href: "/billing",
         icon: CreditCard,
+      },
+      {
+        label: "My Service",
+        href: "/my-service",
+        icon: Cloud,
       },
     ],
   },

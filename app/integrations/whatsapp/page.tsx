@@ -75,7 +75,7 @@ export default function WhatsAppIntegrationPage() {
     connectedAccounts: accounts.filter((acc) => acc.status === "CONNECTED")
       .length,
   });
-  console.log(status);
+ 
   const backendCallbackUrl = status.callbackUrl;
 
   // Fetch accounts and config status on workspace change
