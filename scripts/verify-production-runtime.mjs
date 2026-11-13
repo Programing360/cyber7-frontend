@@ -214,9 +214,9 @@ async function run() {
       process.exitCode = 1;
     } else {
       // console.log("\n✅ ALL PRODUCTION RUNTIME VERIFICATION CHECKS PASSED!");
-      console.log(
-        "Platform admin routes strictly fail-closed; no dashboard data leaked; no parameter/cookie bypass possible.",
-      );
+      // console.log(
+      //   "Platform admin routes strictly fail-closed; no dashboard data leaked; no parameter/cookie bypass possible.",
+      // );
     }
   } finally {
     cleanup();

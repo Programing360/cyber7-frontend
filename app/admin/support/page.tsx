@@ -84,6 +84,33 @@ export default function AdminSupportPage() {
   const [targetStatus, setTargetStatus] = useState<
     "OPEN" | "IN_PROGRESS" | "WAITING_ON_CUSTOMER" | "RESOLVED" | "CLOSED"
   >("RESOLVED");
+  const [availableAdmins, setAvailableAdmins] = useState<
+    Array<{ id: string; name: string; email: string; platformRole?: string }>
+  >([]);
+  const [fetchingAdmins, setFetchingAdmins] = useState(false);
+
+  // Helper to reliably resolve ticket identifier for API calls
+  const getTicketIdentifier = (
+    ticket: AdminSupportTicket | null | undefined,
+  ): string => {
+    if (!ticket) return "";
+    const rawId = ticket.id || (ticket as any)._id;
+    const validId =
+      typeof rawId === "string"
+        ? rawId.trim()
+        : rawId?.toString
+          ? rawId.toString()
+          : "";
+    if (
+      validId &&
+      validId !== "[object Object]" &&
+      validId !== "undefined" &&
+      validId !== "null"
+    ) {
+      return validId;
+    }
+    return ticket.ticketNumber || "";
+  };
 
   // Reply message input in drawer
   const [replyContent, setReplyContent] = useState("");
@@ -203,27 +230,70 @@ export default function AdminSupportPage() {
     }
   };
 
-  const handleOpenAssignModal = () => {
+  const handleOpenAssignModal = async () => {
     if (!selectedTicket) return;
-    setAssignAdminId(selectedTicket.assignedAdminId || "");
+    const currentAssignedId =
+      selectedTicket.assignedAdminId ||
+      (typeof selectedTicket.assignedAdmin === "object" &&
+      selectedTicket.assignedAdmin !== null
+        ? (selectedTicket.assignedAdmin as any)._id ||
+          (selectedTicket.assignedAdmin as any).id ||
+          (selectedTicket.assignedAdmin as any).email
+        : selectedTicket.assignedAdmin || "");
+    setAssignAdminId(currentAssignedId ? String(currentAssignedId) : "");
     setAssignModalOpen(true);
+
+    if (availableAdmins.length === 0) {
+      setFetchingAdmins(true);
+      try {
+        const res = await adminService.listUsers({ limit: 50 });
+        if (res?.items) {
+          const admins = res.items.filter(
+            (u) =>
+              u.platformRole === "SUPER_ADMIN" ||
+              u.platformRole === "FINANCE_ADMIN" ||
+              (u as any).role === "ADMIN" ||
+              (u as any).role === "OWNER",
+          );
+          setAvailableAdmins(admins.length > 0 ? admins : res.items);
+        }
+      } catch (e) {
+        console.warn("[AdminSupport] Failed to fetch admins list:", e);
+      } finally {
+        setFetchingAdmins(false);
+      }
+    }
   };
 
   const handleConfirmAssign = async () => {
     if (!selectedTicket) return;
+    const ticketId = getTicketIdentifier(selectedTicket);
+    if (!ticketId) {
+      adminToast.error("Error", "Ticket ID is missing.");
+      return;
+    }
     setActionLoading(true);
     try {
-      const updated = await adminService.assignSupportTicket(
-        selectedTicket.id,
-        {
-          assignedAdminId: assignAdminId.trim() || undefined,
-        },
-      );
+      const updated = await adminService.assignSupportTicket(ticketId, {
+        assignedAdminId: assignAdminId.trim() || null,
+      });
       adminToast.success(
         "Ticket Assigned",
         `Ticket #${selectedTicket.ticketNumber} assigned successfully.`,
       );
-      setSelectedTicket((prev) => (prev ? { ...prev, ...updated } : null));
+      setSelectedTicket((prev) =>
+        prev
+          ? {
+            ...prev,
+            ...updated,
+            id:
+              updated?.id ||
+              (updated as any)?._id ||
+              prev.id ||
+              ticketId,
+          }
+          : null,
+      );
       setAssignModalOpen(false);
       await loadTickets();
     } catch (err: any) {
@@ -239,26 +309,42 @@ export default function AdminSupportPage() {
   const handleOpenStatusModal = () => {
     if (!selectedTicket) return;
     setTargetStatus(
-      selectedTicket.status === "RESOLVED" ? "CLOSED" : "RESOLVED",
+      selectedTicket.status === "RESOLVED"
+        ? "CLOSED"
+        : (selectedTicket.status as any) || "RESOLVED",
     );
     setStatusModalOpen(true);
   };
 
   const handleConfirmStatus = async () => {
     if (!selectedTicket) return;
+    const ticketId = getTicketIdentifier(selectedTicket);
+    if (!ticketId) {
+      adminToast.error("Error", "Ticket ID is missing.");
+      return;
+    }
     setActionLoading(true);
     try {
-      const updated = await adminService.updateSupportTicketStatus(
-        selectedTicket.id,
-        {
-          status: targetStatus,
-        },
-      );
+      const updated = await adminService.updateSupportTicketStatus(ticketId, {
+        status: targetStatus,
+      });
       adminToast.success(
         "Status Updated",
         `Ticket #${selectedTicket.ticketNumber} marked as ${targetStatus}.`,
       );
-      setSelectedTicket((prev) => (prev ? { ...prev, ...updated } : null));
+      setSelectedTicket((prev) =>
+        prev
+          ? {
+            ...prev,
+            ...updated,
+            id:
+              updated?.id ||
+              (updated as any)?._id ||
+              prev.id ||
+              ticketId,
+          }
+          : null,
+      );
       setStatusModalOpen(false);
       await loadTickets();
     } catch (err: any) {
@@ -273,14 +359,16 @@ export default function AdminSupportPage() {
 
   const handleSendReply = async () => {
     if (!selectedTicket || !replyContent.trim()) return;
+    const ticketId = getTicketIdentifier(selectedTicket);
+    if (!ticketId) {
+      adminToast.error("Error", "Ticket ID is missing.");
+      return;
+    }
     setReplyLoading(true);
     try {
-      const newMsg = await adminService.addSupportTicketMessage(
-        selectedTicket.id,
-        {
-          content: replyContent.trim(),
-        },
-      );
+      const newMsg = await adminService.addSupportTicketMessage(ticketId, {
+        content: replyContent.trim(),
+      });
       adminToast.success(
         "Reply Dispatched",
         "Support response recorded and sent.",
@@ -292,6 +380,7 @@ export default function AdminSupportPage() {
         const existing = prev.messages || [];
         return {
           ...prev,
+          status: prev.status === "OPEN" ? "IN_PROGRESS" : prev.status,
           messages: [...existing, newMsg],
         };
       });
@@ -376,11 +465,10 @@ export default function AdminSupportPage() {
                 ? "Auto-refresh is active (25s)"
                 : "Auto-refresh is paused"
             }
-            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
-              autoRefresh
+            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${autoRefresh
                 ? "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
                 : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-            }`}
+              }`}
           >
             <Radio
               size={13}
@@ -423,11 +511,10 @@ export default function AdminSupportPage() {
             setPriorityFilter("ALL");
             setPage(1);
           }}
-          className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition-all hover:shadow-xs ${
-            statusFilter === "ALL" && priorityFilter === "ALL"
+          className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition-all hover:shadow-xs ${statusFilter === "ALL" && priorityFilter === "ALL"
               ? "border-blue-400 bg-blue-50/70 ring-2 ring-blue-200"
               : "border-slate-200 bg-white hover:border-slate-300"
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
@@ -453,11 +540,10 @@ export default function AdminSupportPage() {
             setPriorityFilter("ALL");
             setPage(1);
           }}
-          className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition-all hover:shadow-xs ${
-            statusFilter === "OPEN"
+          className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition-all hover:shadow-xs ${statusFilter === "OPEN"
               ? "border-amber-400 bg-amber-50/70 ring-2 ring-amber-200"
               : "border-slate-200 bg-white hover:border-slate-300"
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
@@ -483,11 +569,10 @@ export default function AdminSupportPage() {
             setPriorityFilter("ALL");
             setPage(1);
           }}
-          className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition-all hover:shadow-xs ${
-            statusFilter === "IN_PROGRESS"
+          className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition-all hover:shadow-xs ${statusFilter === "IN_PROGRESS"
               ? "border-indigo-400 bg-indigo-50/70 ring-2 ring-indigo-200"
               : "border-slate-200 bg-white hover:border-slate-300"
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">
@@ -513,11 +598,10 @@ export default function AdminSupportPage() {
             setPriorityFilter("ALL");
             setPage(1);
           }}
-          className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition-all hover:shadow-xs ${
-            statusFilter === "RESOLVED"
+          className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition-all hover:shadow-xs ${statusFilter === "RESOLVED"
               ? "border-emerald-400 bg-emerald-50/70 ring-2 ring-emerald-200"
               : "border-slate-200 bg-white hover:border-slate-300"
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
@@ -543,11 +627,10 @@ export default function AdminSupportPage() {
             setStatusFilter("ALL");
             setPage(1);
           }}
-          className={`col-span-2 flex flex-col justify-between rounded-2xl border p-4 text-left transition-all hover:shadow-xs sm:col-span-1 ${
-            priorityFilter === "URGENT" || priorityFilter === "HIGH"
+          className={`col-span-2 flex flex-col justify-between rounded-2xl border p-4 text-left transition-all hover:shadow-xs sm:col-span-1 ${priorityFilter === "URGENT" || priorityFilter === "HIGH"
               ? "border-rose-400 bg-rose-50/70 ring-2 ring-rose-200"
               : "border-slate-200 bg-white hover:border-slate-300"
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700">
@@ -674,13 +757,13 @@ export default function AdminSupportPage() {
                       {(search ||
                         priorityFilter !== "ALL" ||
                         statusFilter !== "ALL") && (
-                        <button
-                          onClick={handleResetFilters}
-                          className="mt-2 inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                        >
-                          Clear Filters
-                        </button>
-                      )}
+                          <button
+                            onClick={handleResetFilters}
+                            className="mt-2 inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                          >
+                            Clear Filters
+                          </button>
+                        )}
                     </div>
                   </td>
                 </tr>
@@ -723,7 +806,14 @@ export default function AdminSupportPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-600 truncate">
-                      {t.assignedAdmin || (
+                      {typeof t.assignedAdmin === "object" &&
+                        t.assignedAdmin !== null ? (
+                        (t.assignedAdmin as any).name ||
+                        (t.assignedAdmin as any).email ||
+                        "Unassigned"
+                      ) : t.assignedAdmin ? (
+                        t.assignedAdmin
+                      ) : (
                         <span className="text-slate-400 italic">
                           Unassigned
                         </span>
@@ -797,7 +887,12 @@ export default function AdminSupportPage() {
                   Assigned Agent
                 </span>
                 <span className="font-semibold text-slate-800">
-                  {selectedTicket.assignedAdmin || "Unassigned"}
+                  {typeof selectedTicket.assignedAdmin === "object" &&
+                    selectedTicket.assignedAdmin !== null
+                    ? (selectedTicket.assignedAdmin as any).name ||
+                    (selectedTicket.assignedAdmin as any).email ||
+                    "Unassigned"
+                    : selectedTicket.assignedAdmin || "Unassigned"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -864,7 +959,7 @@ export default function AdminSupportPage() {
 
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {selectedTicket.messages &&
-                selectedTicket.messages.length > 0 ? (
+                  selectedTicket.messages.length > 0 ? (
                   selectedTicket.messages.map((m, idx) => {
                     const isAgent =
                       m.senderRole === "AGENT" ||
@@ -872,11 +967,10 @@ export default function AdminSupportPage() {
                     return (
                       <div
                         key={idx}
-                        className={`rounded-xl p-3 text-xs ${
-                          isAgent
+                        className={`rounded-xl p-3 text-xs ${isAgent
                             ? "bg-[#effbdd] border border-[#d2f39d] text-slate-900 ml-4"
                             : "bg-slate-100 border border-slate-200 text-slate-800 mr-4"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
                           <span className="font-bold">
@@ -934,11 +1028,16 @@ export default function AdminSupportPage() {
                 {selectedTicket.status === "OPEN" && (
                   <button
                     onClick={async () => {
+                      const ticketId = getTicketIdentifier(selectedTicket);
+                      if (!ticketId) {
+                        adminToast.error("Error", "Ticket ID is missing.");
+                        return;
+                      }
                       setActionLoading(true);
                       try {
                         const updated =
                           await adminService.updateSupportTicketStatus(
-                            selectedTicket.id,
+                            ticketId,
                             {
                               status: "IN_PROGRESS",
                             },
@@ -948,7 +1047,17 @@ export default function AdminSupportPage() {
                           "Ticket marked as In Progress.",
                         );
                         setSelectedTicket((prev) =>
-                          prev ? { ...prev, ...updated } : null,
+                          prev
+                            ? {
+                              ...prev,
+                              ...updated,
+                              id:
+                                updated?.id ||
+                                (updated as any)?._id ||
+                                prev.id ||
+                                ticketId,
+                            }
+                            : null,
                         );
                         await loadTickets(true);
                       } catch (err: any) {
@@ -970,11 +1079,16 @@ export default function AdminSupportPage() {
                   selectedTicket.status !== "CLOSED" && (
                     <button
                       onClick={async () => {
+                        const ticketId = getTicketIdentifier(selectedTicket);
+                        if (!ticketId) {
+                          adminToast.error("Error", "Ticket ID is missing.");
+                          return;
+                        }
                         setActionLoading(true);
                         try {
                           const updated =
                             await adminService.updateSupportTicketStatus(
-                              selectedTicket.id,
+                              ticketId,
                               {
                                 status: "RESOLVED",
                               },
@@ -984,7 +1098,17 @@ export default function AdminSupportPage() {
                             "Ticket marked as Resolved.",
                           );
                           setSelectedTicket((prev) =>
-                            prev ? { ...prev, ...updated } : null,
+                            prev
+                              ? {
+                                ...prev,
+                                ...updated,
+                                id:
+                                  updated?.id ||
+                                  (updated as any)?._id ||
+                                  prev.id ||
+                                  ticketId,
+                              }
+                              : null,
                           );
                           await loadTickets(true);
                         } catch (err: any) {
@@ -1134,18 +1258,41 @@ export default function AdminSupportPage() {
         <div className="space-y-3 pt-2 text-xs">
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-              Admin User ID
+              Select Administrator
+            </label>
+            <select
+              value={assignAdminId}
+              onChange={(e) => setAssignAdminId(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 focus:border-[#88da1c] focus:outline-hidden focus:ring-1 focus:ring-[#88da1c]"
+            >
+              <option value="">-- Unassigned (Clear assignment) --</option>
+              {availableAdmins.map((admin) => (
+                <option key={admin.id} value={admin.id}>
+                  {admin.name} ({admin.email})
+                  {admin.platformRole ? ` • ${admin.platformRole}` : ""}
+                </option>
+              ))}
+            </select>
+            {fetchingAdmins && (
+              <p className="mt-1 text-[11px] text-slate-400">
+                Loading administrator list...
+              </p>
+            )}
+          </div>
+
+          <div className="pt-2 border-t border-slate-100">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+              Or Enter Admin ID / Email
             </label>
             <input
               type="text"
               value={assignAdminId}
               onChange={(e) => setAssignAdminId(e.target.value)}
-              placeholder="e.g. 507f1f77bcf86cd799439011 (leave empty to unassign)"
+              placeholder="e.g. admin@vexchat.app or ObjectId (empty to unassign)"
               className="w-full rounded-xl border border-slate-300 p-2 text-xs font-mono focus:border-[#88da1c] focus:outline-hidden focus:ring-1 focus:ring-[#88da1c]"
             />
             <p className="mt-1 text-[11px] text-slate-400">
-              Pass an active platform admin's user ID to delegate this
-              escalation.
+              Select an admin from the dropdown above or enter their user ID / email manually.
             </p>
           </div>
         </div>

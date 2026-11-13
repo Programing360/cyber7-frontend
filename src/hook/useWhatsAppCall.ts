@@ -117,6 +117,9 @@ export function useWhatsAppCall({
   const endingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const acceptingCallRef = useRef(false);
+  const pendingCallAbortRef = useRef<{ isAborted: boolean; phone?: string }>({
+    isAborted: false,
+  });
 
   useEffect(() => {
     onCallEndedRef.current = onCallEnded;
@@ -438,13 +441,23 @@ export function useWhatsAppCall({
       },
     );
 
-    socket.on("call-accepted", (data: { callId?: string }) => {
-      if (data?.callId && data.callId === activeCallIdRef.current) {
-        console.info("[WhatsApp Call] User accepted the call:", data.callId);
+    const handleCallAccepted = (data?: { callId?: string }) => {
+      const isMatch =
+        !data?.callId ||
+        data.callId === activeCallIdRef.current ||
+        data.callId === databaseCallIdRef.current ||
+        activeContactRef.current !== null;
 
+      // console.log(data, acceptingCallRef);
+
+      if (isMatch) {
+        console.info("[WhatsApp Call] User accepted the call:", data?.callId);
         markCallConnected();
       }
-    });
+    };
+
+    socket.on("call-accepted", handleCallAccepted);
+    socket.on("call:accepted" as any, handleCallAccepted);
 
     socket.on(
       "call-taken",
@@ -631,6 +644,10 @@ export function useWhatsAppCall({
       try {
         endingRef.current = false;
         endBeepPlayedRef.current = false;
+        pendingCallAbortRef.current = {
+          isAborted: false,
+          phone: contact.phone,
+        };
         cleanupMedia();
 
         activeCallIdRef.current = undefined;
@@ -688,6 +705,32 @@ export function useWhatsAppCall({
                 reject(error);
                 return;
               }
+
+              // Check if user clicked cancel/hangup while initiation was in flight
+              if (pendingCallAbortRef.current.isAborted) {
+                console.info(
+                  "[WhatsApp Call] Call was aborted while dialing. Cancelling immediately.",
+                );
+                if (response?.callId) {
+                  socket.emit("call:cancel" as any, {
+                    workspaceId,
+                    callId: response.callId,
+                    targetPhone: contact.phone,
+                  });
+                  socket.emit("cancel-call" as any, {
+                    workspaceId,
+                    callId: response.callId,
+                    targetPhone: contact.phone,
+                  });
+                  socket.emit("hangup-call", {
+                    workspaceId,
+                    callId: response.callId,
+                  });
+                }
+                reject(new Error("Call cancelled by user."));
+                return;
+              }
+
               if (!response?.accepted) {
                 reject(new Error("could not start the WhatsApp call."));
                 return;
@@ -725,6 +768,7 @@ export function useWhatsAppCall({
   const endCall = useCallback(async () => {
     if (endingRef.current) return;
     endingRef.current = true;
+    pendingCallAbortRef.current.isAborted = true;
 
     const finalDuration = durationRef.current;
     const callId = activeCallIdRef.current || databaseCallIdRef.current;
@@ -734,8 +778,30 @@ export function useWhatsAppCall({
     callSounds.stopAll();
     playEndBeepOnce();
 
-    if (socketRef.current?.connected && workspaceId && callId) {
-      socketRef.current.emit("hangup-call", { workspaceId, callId });
+    if (socketRef.current?.connected && workspaceId) {
+      if (callId) {
+        socketRef.current.emit("hangup-call", { workspaceId, callId });
+        socketRef.current.emit("call:cancel" as any, {
+          workspaceId,
+          callId,
+          targetPhone: contact?.phone,
+        });
+        socketRef.current.emit("cancel-call" as any, {
+          workspaceId,
+          callId,
+          targetPhone: contact?.phone,
+        });
+      } else if (contact?.phone) {
+        // Inflight dial cancellation before callId is returned
+        socketRef.current.emit("call:cancel" as any, {
+          workspaceId,
+          targetPhone: contact.phone,
+        });
+        socketRef.current.emit("cancel-call" as any, {
+          workspaceId,
+          targetPhone: contact.phone,
+        });
+      }
     }
 
     cleanupMedia();
@@ -745,7 +811,7 @@ export function useWhatsAppCall({
         duration: finalDuration,
         phone: contact.phone,
         callId,
-        status: finalDuration > 0 ? "ENDED" : "MISSED",
+        status: finalDuration > 0 ? "ENDED" : "CANCELLED",
       });
     }
 

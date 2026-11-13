@@ -52,7 +52,7 @@ export default function CallModal({
   // 🔥 ফিক্স: callState idle হলে বা isOpen false হলে রেন্ডার হবে না
   if (!isOpen || callState === "idle") return null;
 
-  console.log(callState);
+  // console.log(callState);
 
   const currentCall: ActiveCallData = call || {
     name: "WhatsApp Caller",
@@ -68,7 +68,8 @@ export default function CallModal({
 
   const isIncomingRinging =
     currentCall.type === "incoming" && callState === "ringing";
-  const isActiveCall = callState === "assigned" || callState === "connected";
+  const isConnected = callState === "connected";
+  const isActiveCall = isConnected;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200">
@@ -116,14 +117,18 @@ export default function CallModal({
             {callState === "ringing" && (
               <p className="animate-pulse text-xs font-medium text-emerald-400">
                 {currentCall.type === "outgoing"
-                  ? "Dialing via WhatsApp..."
+                  ? "Ringing..."
                   : "Incoming WhatsApp Call..."}
               </p>
             )}
-            {isActiveCall && (
+            {callState === "assigned" && (
+              <p className="animate-pulse text-xs font-medium text-sky-400">
+                Connecting WhatsApp call...
+              </p>
+            )}
+            {isConnected && (
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-800/80 border border-white/10 px-3.5 py-1 text-xs font-mono text-emerald-300 shadow-inner">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                {callState === "assigned" ? "Assigned • " : ""}
                 {formatTimer(duration)}
               </div>
             )}

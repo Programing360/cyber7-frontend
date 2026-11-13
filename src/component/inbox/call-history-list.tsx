@@ -41,7 +41,7 @@ export default function CallHistoryList({
     });
   }, [logs, search, filter]);
 
-  console.log(filteredLogs, logs);
+  // console.log(filteredLogs, logs);
 
   return (
     <div className="flex h-full flex-col bg-white">

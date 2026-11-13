@@ -39,7 +39,9 @@ export default function AdminPaymentsPage() {
   const [drawerPayment, setDrawerPayment] = useState<AdminPayment | null>(null);
 
   // Action modal states for mutations
-  const [activeAction, setActiveAction] = useState<"APPROVE" | "REJECT" | "REFUND" | null>(null);
+  const [activeAction, setActiveAction] = useState<
+    "APPROVE" | "REJECT" | "REFUND" | null
+  >(null);
   const [targetPayment, setTargetPayment] = useState<AdminPayment | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
   const [stepUpToken, setStepUpToken] = useState("");
@@ -78,6 +80,44 @@ export default function AdminPaymentsPage() {
     setDrawerPayment(p);
   };
 
+  const getWorkspaceDisplayName = (
+    p: AdminPayment | null | undefined,
+  ): string => {
+    if (!p) return "Unknown";
+    if (p.workspaceName && p.workspaceName !== "Unknown") return p.workspaceName;
+    if (typeof p.workspaceId === "object" && p.workspaceId !== null) {
+      if ((p.workspaceId as any).name) return (p.workspaceId as any).name;
+    }
+    if (typeof p.workspaceId === "string" && p.workspaceId.trim()) {
+      return `Workspace (${p.workspaceId.slice(-6)})`;
+    }
+    return p.workspaceName || "Unknown Workspace";
+  };
+
+  const getCustomerDisplayInfo = (
+    p: AdminPayment | null | undefined,
+  ): { name: string; email: string; phone?: string } => {
+    if (!p) return { name: "Unknown", email: "Unknown" };
+    const email =
+      p.initiatedBy?.email && p.initiatedBy.email !== "Unknown"
+        ? p.initiatedBy.email
+        : p.customer?.email || "";
+    const name =
+      p.initiatedBy?.name && p.initiatedBy.name !== "Unknown"
+        ? p.initiatedBy.name
+        : p.customer?.name || (email ? email.split("@")[0] : "");
+    const phone =
+      p.initiatedBy?.phoneNumber ||
+      p.customer?.phoneNumber ||
+      "";
+
+    return {
+      name: name || "Unknown Customer",
+      email: email || "No email available",
+      phone: phone || undefined,
+    };
+  };
+
   const handleCloseDrawer = () => {
     setSelectedPayment(null);
   };
@@ -99,13 +139,16 @@ export default function AdminPaymentsPage() {
       });
       adminToast.success(
         "Bank Transfer Approved",
-        `Payment for ${targetPayment.workspaceName} of BDT ${targetPayment.amount.toLocaleString()} has been approved.`,
+        `Payment for ${getWorkspaceDisplayName(targetPayment)} of BDT ${targetPayment.amount.toLocaleString()} has been approved.`,
       );
       setActiveAction(null);
       setSelectedPayment(null);
       await loadPayments();
     } catch (err: any) {
-      adminToast.error("Approval Failed", err?.message || "Failed to approve bank transfer.");
+      adminToast.error(
+        "Approval Failed",
+        err?.message || "Failed to approve bank transfer.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -130,13 +173,16 @@ export default function AdminPaymentsPage() {
       });
       adminToast.success(
         "Bank Transfer Rejected",
-        `Payment for ${targetPayment.workspaceName} has been rejected.`,
+        `Payment for ${getWorkspaceDisplayName(targetPayment)} has been rejected.`,
       );
       setActiveAction(null);
       setSelectedPayment(null);
       await loadPayments();
     } catch (err: any) {
-      adminToast.error("Rejection Failed", err?.message || "Failed to reject bank transfer.");
+      adminToast.error(
+        "Rejection Failed",
+        err?.message || "Failed to reject bank transfer.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -151,7 +197,10 @@ export default function AdminPaymentsPage() {
   const handleConfirmRefund = async () => {
     if (!targetPayment) return;
     if (refundReason.trim().length < 3) {
-      adminToast.error("Validation Error", "Refund reason must be at least 3 characters.");
+      adminToast.error(
+        "Validation Error",
+        "Refund reason must be at least 3 characters.",
+      );
       return;
     }
     setActionLoading(true);
@@ -161,13 +210,16 @@ export default function AdminPaymentsPage() {
       });
       adminToast.success(
         "Payment Refunded",
-        `Payment ${targetPayment.invoiceNumber} has been marked as refunded.`,
+        `Payment ${targetPayment.invoiceNumber} (${getWorkspaceDisplayName(targetPayment)}) has been marked as refunded.`,
       );
       setActiveAction(null);
       setSelectedPayment(null);
       await loadPayments();
     } catch (err: any) {
-      adminToast.error("Refund Failed", err?.message || "Failed to refund payment.");
+      adminToast.error(
+        "Refund Failed",
+        err?.message || "Failed to refund payment.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -175,11 +227,17 @@ export default function AdminPaymentsPage() {
 
   const handleDownloadReceipt = async (p: AdminPayment) => {
     try {
-      adminToast.info("Preparing Receipt", "Generating and downloading PDF receipt...");
+      adminToast.info(
+        "Preparing Receipt",
+        "Generating and downloading PDF receipt...",
+      );
       await adminService.downloadReceiptPdf(p.id, p.invoiceNumber);
       adminToast.success("Downloaded", "Receipt PDF downloaded successfully.");
     } catch (err: any) {
-      adminToast.error("Download Failed", err?.message || "Failed to download payment receipt.");
+      adminToast.error(
+        "Download Failed",
+        err?.message || "Failed to download payment receipt.",
+      );
     }
   };
 
@@ -343,10 +401,13 @@ export default function AdminPaymentsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-bold text-slate-900 truncate">
-                          {p.workspaceName}
+                          {getWorkspaceDisplayName(p)}
                         </div>
                         <div className="text-[11px] text-slate-500 truncate">
-                          {p.initiatedBy.email}
+                          {(() => {
+                            const c = getCustomerDisplayInfo(p);
+                            return `${c.name} • ${c.email}${c.phone ? ` • ${c.phone}` : ""}`;
+                          })()}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -513,14 +574,16 @@ export default function AdminPaymentsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Workspace</span>
                 <span className="font-bold text-slate-900">
-                  {drawerPayment.workspaceName}
+                  {getWorkspaceDisplayName(drawerPayment)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Initiated By</span>
                 <span className="text-slate-800">
-                  {drawerPayment.initiatedBy.name} (
-                  {drawerPayment.initiatedBy.email})
+                  {(() => {
+                    const c = getCustomerDisplayInfo(drawerPayment);
+                    return `${c.name} (${c.email})${c.phone ? ` • ${c.phone}` : ""}`;
+                  })()}
                 </span>
               </div>
             </div>
@@ -574,14 +637,16 @@ export default function AdminPaymentsPage() {
         onClose={() => setActiveAction(null)}
         onConfirm={handleConfirmApprove}
         title="Approve Bank Transfer"
-        description={`Are you sure you want to approve this deposit of BDT ${targetPayment?.amount.toLocaleString()} for workspace "${targetPayment?.workspaceName}"? This will activate their subscription immediately.`}
+        description={`Are you sure you want to approve this deposit of BDT ${targetPayment?.amount.toLocaleString()} for workspace "${getWorkspaceDisplayName(targetPayment)}"? This will activate their subscription immediately.`}
         confirmText="Approve Deposit"
         isLoading={actionLoading}
         variant="primary"
       >
         <div className="space-y-3 mt-3 text-xs">
           <div>
-            <label className="font-semibold text-slate-700">Admin Verification Notes (Optional)</label>
+            <label className="font-semibold text-slate-700">
+              Admin Verification Notes (Optional)
+            </label>
             <input
               type="text"
               value={adminNotes}
@@ -592,7 +657,10 @@ export default function AdminPaymentsPage() {
           </div>
           {(targetPayment?.amount || 0) >= 50000 && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900">
-              <label className="font-bold">High-Value Transfer Step-Up Token (Required for &gt;= 50,000 BDT)</label>
+              <label className="font-bold">
+                High-Value Transfer Step-Up Token (Required for &gt;= 50,000
+                BDT)
+              </label>
               <input
                 type="text"
                 value={stepUpToken}
@@ -611,13 +679,15 @@ export default function AdminPaymentsPage() {
         onClose={() => setActiveAction(null)}
         onConfirm={handleConfirmReject}
         title="Reject Bank Transfer"
-        description={`Reject deposit of BDT ${targetPayment?.amount.toLocaleString()} for workspace "${targetPayment?.workspaceName}". Please provide a clear explanation.`}
+        description={`Reject deposit of BDT ${targetPayment?.amount.toLocaleString()} for workspace "${getWorkspaceDisplayName(targetPayment)}". Please provide a clear explanation.`}
         confirmText="Reject Transfer"
         isLoading={actionLoading}
         variant="destructive"
       >
         <div className="mt-3 text-xs">
-          <label className="font-semibold text-slate-700">Rejection Reason *</label>
+          <label className="font-semibold text-slate-700">
+            Rejection Reason *
+          </label>
           <textarea
             rows={3}
             value={rejectionReason}
@@ -634,13 +704,15 @@ export default function AdminPaymentsPage() {
         onClose={() => setActiveAction(null)}
         onConfirm={handleConfirmRefund}
         title="Refund Completed Payment"
-        description={`Issue a refund for payment #${targetPayment?.invoiceNumber} (${targetPayment?.workspaceName}) of BDT ${targetPayment?.amount.toLocaleString()}. This action updates the financial ledger.`}
+        description={`Issue a refund for payment #${targetPayment?.invoiceNumber} (${getWorkspaceDisplayName(targetPayment)}) of BDT ${targetPayment?.amount.toLocaleString()}. This action updates the financial ledger.`}
         confirmText="Confirm Refund"
         isLoading={actionLoading}
         variant="destructive"
       >
         <div className="mt-3 text-xs">
-          <label className="font-semibold text-slate-700">Refund Reason *</label>
+          <label className="font-semibold text-slate-700">
+            Refund Reason *
+          </label>
           <textarea
             rows={3}
             value={refundReason}

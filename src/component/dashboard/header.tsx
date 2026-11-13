@@ -636,26 +636,30 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </button>
 
           {notificationsOpen && (
-            <div className="absolute right-0 top-12 z-50 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl transition sm:w-80 md:w-96">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-slate-900 text-sm">
+            <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl  border-slate-200 bg-white p-4 shadow-2xl transition sm:w-80 md:w-96">
+              <div className="flex justify-between w-full border-b border-slate-100 pb-3">
+                <div className=" gap-2">
+                  <h3 className="font-semibold text-slate-900">
                     Workspace Notifications
                   </h3>
+                </div>
+                <div>
                   {unreadCount > 0 && (
-                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                    <span className="rounded-full w-full bg-rose-100 px-3 py-0.5 text-[10px] font-bold text-rose-700">
                       {unreadCount} new
                     </span>
                   )}
                 </div>
+              </div>
 
+              <div>
                 {unreadCount > 0 && (
                   <button
                     type="button"
                     onClick={handleMarkAllNotificationsRead}
-                    className="flex items-center gap-1 text-[11px] font-medium text-emerald-600 hover:text-emerald-700"
+                    className=" w-full gap-1 font-medium text-[#88da1c] hover:text-emerald-700"
                   >
-                    <CheckCheck size={13} />
+                    {/* <CheckCheck size={13} /> */}
                     <span>Mark all read</span>
                   </button>
                 )}
@@ -682,8 +686,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         key={item.id}
                         href={item.url}
                         onClick={() => setNotificationsOpen(false)}
-                        className={`flex items-start gap-3 py-2.5 px-1.5 transition rounded-xl ${
-                          !item.read ? "bg-slate-50/70" : "hover:bg-slate-50"
+                        className={`flex items-start hover:bg-slate-200 gap-3 py-2.5 px-2.5 transition rounded-2xl ${
+                          !item.read ? "bg-slate-50/70" : ""
                         }`}
                       >
                         <div

@@ -153,12 +153,23 @@ export interface UpdatePlanInput {
  */
 export interface AdminPayment {
   id: string;
-  workspaceId: string;
-  workspaceName: string;
+  workspaceId:
+    | string
+    | { _id?: string; id?: string; name?: string; slug?: string };
+  workspaceName?: string;
   initiatedBy: {
     id: string;
+    _id?: string;
     name: string;
     email: string;
+    phoneNumber?: string;
+  };
+  customer?: {
+    id: string;
+    _id?: string;
+    name: string;
+    email: string;
+    phoneNumber?: string;
   };
   paymentMethod: PaymentMethod;
   planCode: PlanCode;
@@ -267,7 +278,7 @@ export interface AdminSupportTicket {
   customerEmail: string;
   subject: string;
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+  status: "OPEN" | "IN_PROGRESS" | "WAITING_ON_CUSTOMER" | "RESOLVED" | "CLOSED";
   assignedAdmin?: string | null;
   assignedAdminId?: string | null;
   messages?: AdminSupportMessage[];

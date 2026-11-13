@@ -76,7 +76,7 @@ export default function ContactPanel({
   const displayName = contact?.profileName || contact?.phoneNumber || "Unknown";
   const initials = getInitials(contact?.profileName, contact?.phoneNumber);
 
-console.log(conversation);
+// console.log(conversation);
   
   async function handleStatusChange(newStatus: ConversationStatus) {
     if (newStatus === status || isUpdating) return;

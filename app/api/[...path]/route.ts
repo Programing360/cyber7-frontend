@@ -211,11 +211,23 @@ async function handleAdminBffProxy(
       statusText: backendRes.statusText,
     });
 
-    // ৪. কন্টেন্ট টাইপ ও ক্যাশ কন্ট্রোল ফরোয়ার্ড
+    // ৪. কন্টেন্ট টাইপ ও মিডিয়া স্ট্রিমিং হেডার ফরোয়ার্ড
     clientResponse.headers.set(
       "Content-Type",
       backendRes.headers.get("content-type") || "application/json",
     );
+    const contentLength = backendRes.headers.get("content-length");
+    if (contentLength) {
+      clientResponse.headers.set("Content-Length", contentLength);
+    }
+    const acceptRanges = backendRes.headers.get("accept-ranges");
+    if (acceptRanges) {
+      clientResponse.headers.set("Accept-Ranges", acceptRanges);
+    }
+    const contentRange = backendRes.headers.get("content-range");
+    if (contentRange) {
+      clientResponse.headers.set("Content-Range", contentRange);
+    }
     clientResponse.headers.set("Cache-Control", "no-store");
 
     // ৫. ব্যাকএন্ডের Set-Cookie (সেশন সেট বা লগআউটের সময় কুকি ডিলিট) ক্লায়েন্টে পৌঁছে দিন

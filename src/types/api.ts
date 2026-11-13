@@ -438,6 +438,8 @@ export type WhatsAppMessageType =
   | "TEMPLATE"
   | "INTERACTIVE"
   | "CALL"
+  | "voice_call"
+  | "missed_call"
   | "UNKNOWN";
 export type WhatsAppMessageStatus =
   | "RECEIVED"

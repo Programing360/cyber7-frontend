@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await apiClient.get<ApiResponse<CurrentUserResponseData>>("/auth/me");
 
       if (response && response.data?.user) {
-        console.log(response);
+        // console.log(response);
         setUser(response.data.user);
       } else {
         removeStoredToken();

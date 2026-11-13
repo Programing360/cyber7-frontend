@@ -198,11 +198,10 @@ export default function ConversationList({
                   key={item}
                   type="button"
                   onClick={() => setFilter(item)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                    filter === item
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${filter === item
                       ? "bg-green-600 text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
+                    }`}
                 >
                   {item}
                 </button>
@@ -261,7 +260,21 @@ export default function ConversationList({
               const timeLabel = formatTime(
                 conv.lastMessageAt ?? conv.updatedAt,
               );
-              const lastText = conv.lastMessage?.text ?? "";
+              const lastMessage = conv.lastMessage;
+              let lastText = lastMessage?.text ?? "";
+              if (!lastText && lastMessage?.type) {
+                if (lastMessage.type === "AUDIO") {
+                  lastText = "🎤 Voice message";
+                } else if (lastMessage.type === "voice_call") {
+                  lastText = "📞 Voice call";
+                } else if (lastMessage.type === "missed_call") {
+                  lastText = "📞 Missed voice call";
+                } else if (lastMessage.type === "IMAGE") {
+                  lastText = "📷 Photo";
+                } else if (lastMessage.type === "VIDEO") {
+                  lastText = "🎥 Video";
+                }
+              }
               const convId = conv._id || (conv as { id?: string }).id || "";
               const isSelected =
                 selectedId === conv._id ||
@@ -271,9 +284,8 @@ export default function ConversationList({
                 <div
                   key={convId}
                   onClick={() => onSelect(convId)}
-                  className={`group relative flex w-full cursor-pointer gap-3 border-b border-slate-100 p-4 text-left transition ${
-                    isSelected ? "bg-green-50/80" : "hover:bg-slate-50"
-                  }`}
+                  className={`group relative flex w-full cursor-pointer gap-3 border-b border-slate-100 p-4 text-left transition ${isSelected ? "bg-green-50/80" : "hover:bg-slate-50"
+                    }`}
                 >
                   <div
                     className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xs font-bold ${colorClass}`}
@@ -314,13 +326,12 @@ export default function ConversationList({
 
                     <div className="mt-2 flex items-center justify-between">
                       <span
-                        className={`rounded-md px-2 py-1 text-[10px] font-medium ${
-                          conv.status === "OPEN"
+                        className={`rounded-md px-2 py-1 text-[10px] font-medium ${conv.status === "OPEN"
                             ? "bg-green-50 text-green-700"
                             : conv.status === "PENDING"
                               ? "bg-amber-50 text-amber-700"
                               : "bg-slate-100 text-slate-500"
-                        }`}
+                          }`}
                       >
                         {conv.status}
                       </span>

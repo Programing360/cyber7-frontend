@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -10,13 +10,17 @@ import {
   Image as ImageIcon,
   Loader2,
   MessageCircle,
+  Mic,
   MoreVertical,
   Paperclip,
+  Pause,
   Phone,
   PhoneIncoming,
   PhoneMissed,
   PhoneOff,
   PhoneOutgoing,
+  Play,
+  RotateCcw,
   Send,
   Smile,
   Video,
@@ -89,11 +93,63 @@ function getInitials(name?: string, phone?: string): string {
   return "?";
 }
 
-function formatMessageTime(iso: string): string {
+function formatWhatsAppTime(
+  timestamp?: string | null,
+  fallback?: string | null,
+): string {
+  const raw = timestamp || fallback;
+  if (!raw) return "";
   try {
-    return new Date(iso).toLocaleTimeString([], {
-      hour: "2-digit",
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleTimeString([], {
+      hour: "numeric",
       minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return "";
+  }
+}
+
+function getDateKey(iso?: string | null): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  } catch {
+    return "";
+  }
+}
+
+function formatChatDateHeader(iso?: string | null): string {
+  if (!iso) return "";
+  try {
+    const messageDate = new Date(iso);
+    if (isNaN(messageDate.getTime())) return "";
+
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const isSameDay = (d1: Date, d2: Date) =>
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate();
+
+    if (isSameDay(messageDate, today)) {
+      return "Today";
+    }
+    if (isSameDay(messageDate, yesterday)) {
+      return "Yesterday";
+    }
+
+    const sameYear = messageDate.getFullYear() === today.getFullYear();
+    return messageDate.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      ...(sameYear ? {} : { year: "numeric" }),
     });
   } catch {
     return "";
@@ -126,22 +182,22 @@ function MediaMessageBubble({
   const [isLoading, setIsLoading] = useState(true);
 
   const token = typeof window !== "undefined" ? getStoredToken() : null;
-  const mediaSrc =
-    msg.mediaId && workspaceId
-      ? `/api/workspaces/${workspaceId}/whatsapp/media/${msg.mediaId}${
-          token ? `?token=${encodeURIComponent(token)}` : ""
-        }`
-      : null;
+  const mediaSrc = msg.mediaId
+    ? workspaceId
+      ? `/api/workspaces/${workspaceId}/whatsapp/media/${msg.mediaId}${token ? `?token=${encodeURIComponent(token)}` : ""
+      }`
+      : `/api/whatsapp/media/${msg.mediaId}${token ? `?token=${encodeURIComponent(token)}` : ""
+      }`
+    : null;
 
   if (!mediaSrc || hasError) {
     return (
       <div className="space-y-2">
         <div
-          className={`flex items-center gap-2 rounded-xl p-3 text-xs ${
-            outgoing
+          className={`flex items-center gap-2 rounded-xl p-3 text-xs ${outgoing
               ? "bg-emerald-800/60 text-emerald-100"
               : "bg-slate-100 text-slate-600"
-          }`}
+            }`}
         >
           {msg.type === "IMAGE" ? <ImageIcon size={18} /> : <Video size={18} />}
           <span>
@@ -209,6 +265,375 @@ function MediaMessageBubble({
         <p className="whitespace-pre-wrap break-words text-sm leading-6">
           {msg.text}
         </p>
+      )}
+    </div>
+  );
+}
+
+function formatAudioTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+}
+
+// Audio Message Bubble for WhatsApp Voice Notes and Audio files (.ogg, opus, mp3)
+function AudioMessageBubble({
+  msg,
+  workspaceId,
+  outgoing,
+}: {
+  msg: WhatsAppMessageItem;
+  workspaceId?: string;
+  outgoing: boolean;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState<number>(0);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [playbackRate, setPlaybackRate] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  const token = typeof window !== "undefined" ? getStoredToken() : null;
+
+  // Build the media streaming URL pointing to our backend proxy route
+  const audioSrc = useMemo(() => {
+    if (!msg.mediaId) return null;
+    const path = workspaceId
+      ? `/api/workspaces/${workspaceId}/whatsapp/media/${msg.mediaId}`
+      : `/api/whatsapp/media/${msg.mediaId}`;
+    return token ? `${path}?token=${encodeURIComponent(token)}` : path;
+  }, [msg.mediaId, workspaceId, token]);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      setIsLoading(true);
+      audio.play().catch((err) => {
+        console.warn("[AudioMessageBubble] Play error:", err);
+        setIsLoading(false);
+        setHasError(true);
+      });
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const targetTime = Number(e.target.value);
+    setCurrentTime(targetTime);
+    if (audioRef.current) {
+      audioRef.current.currentTime = targetTime;
+    }
+  };
+
+  const cyclePlaybackRate = () => {
+    const nextRate = playbackRate === 1 ? 1.5 : playbackRate === 1.5 ? 2 : 1;
+    setPlaybackRate(nextRate);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextRate;
+    }
+  };
+
+  if (!audioSrc || hasError) {
+    return (
+      <div className="space-y-1.5 py-1 min-w-[220px]">
+        <div
+          className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs ${outgoing
+              ? "bg-emerald-900/60 text-emerald-100"
+              : "bg-slate-100 text-slate-600"
+            }`}
+        >
+          <AlertCircle size={16} className="text-amber-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-medium">Voice note unavailable</p>
+            <p className="text-[10px] opacity-75">Media stream could not be loaded</p>
+          </div>
+          {audioSrc && (
+            <button
+              type="button"
+              onClick={() => {
+                setHasError(false);
+                setIsLoading(true);
+                if (audioRef.current) {
+                  audioRef.current.load();
+                }
+              }}
+              className="rounded p-1 hover:bg-black/10 transition"
+              title="Retry loading audio"
+            >
+              <RotateCcw size={14} />
+            </button>
+          )}
+        </div>
+        {msg.text && (
+          <p className="whitespace-pre-wrap break-words text-sm leading-5">
+            {msg.text}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  const progressPercent =
+    duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+
+  return (
+    <div className="flex flex-col gap-1.5 py-1 min-w-[240px] max-w-xs sm:min-w-[280px]">
+      <div className="flex items-center gap-3">
+        {/* Play / Pause Toggle Button */}
+        <button
+          type="button"
+          onClick={togglePlay}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 shadow-sm ${outgoing
+              ? "bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-bold"
+              : "bg-emerald-600 hover:bg-emerald-500 text-white"
+            }`}
+          aria-label={isPlaying ? "Pause voice message" : "Play voice message"}
+        >
+          {isLoading ? (
+            <Loader2 size={18} className="animate-spin text-current" />
+          ) : isPlaying ? (
+            <Pause size={18} className="fill-current" />
+          ) : (
+            <Play size={18} className="fill-current ml-0.5" />
+          )}
+        </button>
+
+        {/* Progress Track & Scrubber */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center">
+          <div className="relative flex items-center h-6">
+            <input
+              type="range"
+              min={0}
+              max={duration || 100}
+              step={0.1}
+              value={currentTime}
+              onChange={handleSeek}
+              className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer transition-all ${outgoing
+                  ? "accent-emerald-300 bg-emerald-950/40"
+                  : "accent-emerald-600 bg-slate-200"
+                }`}
+              style={{
+                background: outgoing
+                  ? `linear-gradient(to right, #6ee7b7 0%, #6ee7b7 ${progressPercent}%, rgba(6, 78, 59, 0.4) ${progressPercent}%, rgba(6, 78, 59, 0.4) 100%)`
+                  : `linear-gradient(to right, #059669 0%, #059669 ${progressPercent}%, #e2e8f0 ${progressPercent}%, #e2e8f0 100%)`,
+              }}
+            />
+          </div>
+
+          <div
+            className={`flex items-center justify-between text-[11px] font-medium leading-none px-0.5 ${outgoing ? "text-emerald-100/80" : "text-slate-500"
+              }`}
+          >
+            <span>
+              {isPlaying
+                ? formatAudioTime(currentTime)
+                : formatAudioTime(duration || currentTime)}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={cyclePlaybackRate}
+                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold transition ${outgoing
+                    ? "bg-emerald-900/60 hover:bg-emerald-900 text-emerald-200"
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                  }`}
+                title="Change playback speed"
+              >
+                {playbackRate}x
+              </button>
+              <Mic
+                size={13}
+                className={`shrink-0 ${outgoing ? "text-emerald-300/80" : "text-emerald-600"
+                  }`}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Hidden HTML5 Audio Element */}
+        <audio
+          ref={audioRef}
+          src={audioSrc}
+          preload="metadata"
+          onPlay={() => {
+            setIsPlaying(true);
+            setIsLoading(false);
+          }}
+          onPause={() => setIsPlaying(false)}
+          onWaiting={() => setIsLoading(true)}
+          onPlaying={() => setIsLoading(false)}
+          onCanPlay={() => setIsLoading(false)}
+          onLoadedMetadata={(e) => {
+            const target = e.currentTarget;
+            if (
+              target.duration &&
+              !isNaN(target.duration) &&
+              target.duration !== Infinity
+            ) {
+              setDuration(target.duration);
+            }
+            setIsLoading(false);
+          }}
+          onTimeUpdate={(e) => {
+            setCurrentTime(e.currentTarget.currentTime);
+          }}
+          onEnded={() => {
+            setIsPlaying(false);
+            setCurrentTime(0);
+          }}
+          onError={(e) => {
+            console.error("[AudioMessageBubble] Audio playback error:", e);
+            setIsLoading(false);
+            setHasError(true);
+          }}
+        />
+      </div>
+
+      {msg.text && (
+        <p className="whitespace-pre-wrap break-words text-sm leading-5 mt-1">
+          {msg.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Voice Call Message Bubble for WhatsApp Voice Call Logs
+function VoiceCallMessageBubble({
+  msg,
+  outgoing,
+  onStartCall,
+  contactName,
+  phone,
+}: {
+  msg: WhatsAppMessageItem;
+  outgoing: boolean;
+  onStartCall?: (name: string, phone: string) => void;
+  contactName?: string;
+  phone?: string;
+}) {
+  const text = (msg.text || "").trim();
+  const lowerText = text.toLowerCase();
+
+  const isCancelled =
+    lowerText.includes("cancel") || lowerText.includes("cancelled");
+  const isDeclined =
+    lowerText.includes("declined") || lowerText.includes("rejected");
+  const isUnanswered =
+    lowerText.includes("unanswered") || lowerText.includes("no answer");
+  const isMissed =
+    msg.type === "missed_call" ||
+    isCancelled ||
+    isDeclined ||
+    isUnanswered ||
+    lowerText.includes("missed");
+
+  // Extract duration string if present (e.g. "Voice call • 02:45" or "02:45")
+  let durationStr = "";
+  const bulletMatch = text.match(/•\s*([0-9:]+)/);
+  if (bulletMatch) {
+    durationStr = bulletMatch[1].trim();
+  } else {
+    const timeMatch = text.match(/\b([0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)\b/);
+    if (timeMatch) {
+      durationStr = timeMatch[1].trim();
+    }
+  }
+
+  // Determine Title & Subtitle
+  let title = "Voice Call";
+  let subtitle = outgoing ? "Outgoing voice call" : "Incoming voice call";
+
+  if (isDeclined) {
+    title = "Declined Voice Call";
+    subtitle = outgoing ? "Call was declined" : "Declined by you";
+  } else if (isCancelled) {
+    title = "Cancelled Voice Call";
+    subtitle = outgoing ? "Cancelled before answer" : "Caller cancelled";
+  } else if (isMissed || isUnanswered) {
+    if (outgoing) {
+      title = "Unanswered Voice Call";
+      subtitle = "No answer from recipient";
+    } else {
+      title = "Missed Voice Call";
+      subtitle = "Missed call • Tap to call back";
+    }
+  } else if (durationStr) {
+    title = "Voice Call";
+    subtitle = outgoing
+      ? `Outgoing • ${durationStr}`
+      : `Incoming • ${durationStr}`;
+  }
+
+  const canCallBack = Boolean(onStartCall && phone);
+
+  return (
+    <div className="flex items-center gap-3.5 py-1 min-w-[220px] sm:min-w-[270px]">
+      {/* Call Direction / Status Avatar */}
+      <div
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-xs transition-transform ${isMissed
+            ? isCancelled
+              ? "bg-amber-100 text-amber-700"
+              : "bg-rose-100 text-rose-600"
+            : outgoing
+              ? "bg-emerald-600 text-white shadow-emerald-950/20"
+              : "bg-emerald-100 text-emerald-800"
+          }`}
+      >
+        {isCancelled ? (
+          <PhoneOff size={19} />
+        ) : isMissed ? (
+          <PhoneMissed size={19} />
+        ) : outgoing ? (
+          <PhoneOutgoing size={19} />
+        ) : (
+          <PhoneIncoming size={19} />
+        )}
+      </div>
+
+      {/* Call Info Text & Badges */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold leading-tight tracking-tight">
+            {title}
+          </p>
+          {durationStr && !isMissed && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${outgoing
+                  ? "bg-emerald-900/60 text-emerald-200"
+                  : "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                }`}
+            >
+              {durationStr}
+            </span>
+          )}
+        </div>
+        <p
+          className={`mt-1 text-xs truncate ${outgoing ? "text-emerald-100/85" : "text-slate-500"
+            }`}
+        >
+          {subtitle}
+        </p>
+      </div>
+
+      {/* Direct Call-Back Action */}
+      {canCallBack && isMissed && !outgoing && (
+        <button
+          type="button"
+          onClick={() => onStartCall!(contactName || "Contact", phone!)}
+          className={`shrink-0 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-xs transition-colors ${outgoing
+              ? "bg-emerald-700 hover:bg-emerald-600 text-white"
+              : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200"
+            }`}
+          title="Call back this contact"
+        >
+          <Phone size={12} />
+          <span>Call back</span>
+        </button>
       )}
     </div>
   );
@@ -618,71 +1043,69 @@ export default function ChatWindow({
               )}
             </div>
           ) : (
-            <>
-              <div className="mb-6 flex justify-center">
-                <span className="rounded-lg shadow-lg shadow-blue-200 border-slate-200 bg-white px-3 py-1.5 text-[10px] text-slate-500">
-                  Message history
-                </span>
-              </div>
+            <div className="space-y-4">
+              {messages.map((msg, index) => {
+                const outgoing = msg.direction === "OUTBOUND";
+                const isCall =
+                  msg.type === "CALL" ||
+                  msg.type === "voice_call" ||
+                  msg.type === "missed_call";
+                const isAudio =
+                  msg.type === "AUDIO" ||
+                  Boolean(
+                    msg.mediaMimeType &&
+                    msg.mediaMimeType.toLowerCase().startsWith("audio/"),
+                  );
 
-              <div className="space-y-4">
-                {messages.map((msg) => {
-                  const outgoing = msg.direction === "OUTBOUND";
+                const currentDateKey = getDateKey(
+                  msg.timestamp || msg.createdAt,
+                );
+                const prevDateKey =
+                  index > 0
+                    ? getDateKey(
+                      messages[index - 1].timestamp ||
+                      messages[index - 1].createdAt,
+                    )
+                    : null;
+                const showDateHeader =
+                  currentDateKey && currentDateKey !== prevDateKey;
+                const dateLabel = showDateHeader
+                  ? formatChatDateHeader(msg.timestamp || msg.createdAt)
+                  : "";
 
-                  return (
+                return (
+                  <div key={msg._id} className="space-y-3">
+                    {showDateHeader && (
+                      <div className="my-4 flex justify-center">
+                        <span className="rounded-full bg-slate-100/90 border border-slate-200/70 px-3.5 py-1 text-[11px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm">
+                          {dateLabel}
+                        </span>
+                      </div>
+                    )}
+
                     <div
-                      key={msg._id}
                       className={`flex ${outgoing ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[85%] flex gap-4 rounded-2xl px-4 py-3 shadow-lg shadow-slate-700 sm:max-w-[75%] ${
-                          outgoing
-                            ? "rounded-br-md bg-green-900 text-white"
-                            : "rounded-bl-md border-slate-200 bg-white text-slate-800"
-                        }`}
+                        className={`group flex items-end gap-4 relative max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 shadow-md transition-shadow ${outgoing
+                            ? "rounded-tr-xs bg-emerald-800 text-white shadow-emerald-950/20"
+                            : "rounded-tl-xs border border-slate-200/80 bg-white text-slate-800 shadow-slate-200/50"
+                          }`}
                       >
-                        {msg.type === "CALL" ? (
-                          <div className="flex items-center gap-3 py-1">
-                            <div
-                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                                msg.text?.toLowerCase().includes("missed") ||
-                                msg.text?.toLowerCase().includes("declined") ||
-                                msg.text?.toLowerCase().includes("unanswered")
-                                  ? "bg-red-100 text-red-600"
-                                  : outgoing
-                                    ? "bg-emerald-800 text-white"
-                                    : "bg-emerald-100 text-emerald-700"
-                              }`}
-                            >
-                              {msg.text?.toLowerCase().includes("missed") ||
-                              msg.text?.toLowerCase().includes("declined") ||
-                              msg.text?.toLowerCase().includes("unanswered") ? (
-                                outgoing ? (
-                                  <PhoneOff size={18} />
-                                ) : (
-                                  <PhoneMissed size={18} />
-                                )
-                              ) : outgoing ? (
-                                <PhoneOutgoing size={18} />
-                              ) : (
-                                <PhoneIncoming size={18} />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold leading-tight">
-                                {msg.text || "Voice call"}
-                              </p>
-                              <p
-                                className={`mt-0.5 text-[11px] ${
-                                  outgoing ? "text-green-100" : "text-slate-500"
-                                }`}
-                              >
-                                {outgoing
-                                  ? "Outgoing voice call"
-                                  : "Incoming voice call"}
-                              </p>
-                            </div>
-                          </div>
+                        {isCall ? (
+                          <VoiceCallMessageBubble
+                            msg={msg}
+                            outgoing={outgoing}
+                            onStartCall={onStartCall}
+                            contactName={contactName}
+                            phone={phone}
+                          />
+                        ) : isAudio ? (
+                          <AudioMessageBubble
+                            msg={msg}
+                            workspaceId={workspaceId}
+                            outgoing={outgoing}
+                          />
                         ) : msg.type === "IMAGE" || msg.type === "VIDEO" ? (
                           <MediaMessageBubble
                             msg={msg}
@@ -711,21 +1134,22 @@ export default function ChatWindow({
                         )}
 
                         <div
-                          className={`mt-2 flex items-center justify-end gap-1 text-[10px] ${
-                            outgoing ? "text-green-100" : "text-slate-400"
-                          }`}
+                          className={`mt-1.5 flex items-center justify-end gap-1.5 text-[10px] select-none font-medium ${outgoing ? "text-emerald-200/80" : "text-slate-400"
+                            }`}
                         >
-                          <span>{formatMessageTime(msg.timestamp)}</span>
+                          <span>
+                            {formatWhatsAppTime(msg.timestamp, msg.createdAt)}
+                          </span>
                           {outgoing && <StatusIcon status={msg.status} />}
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
 
-                <div ref={messagesEndRef} />
-              </div>
-            </>
+              <div ref={messagesEndRef} />
+            </div>
           )}
         </div>
       </div>
@@ -763,11 +1187,10 @@ export default function ChatWindow({
           )}
 
           <div
-            className={`flex items-end gap-2 rounded-4xl shadow-md bg-slate-50 p-2 transition ${
-              isClosed || isOptedOut
+            className={`flex items-end gap-2 rounded-4xl shadow-md bg-slate-50 p-2 transition ${isClosed || isOptedOut
                 ? "border-slate-200 opacity-60"
                 : "border-slate-200 focus-within:border-green-400"
-            }`}
+              }`}
           >
             {/* Hidden Media File Input */}
             <input

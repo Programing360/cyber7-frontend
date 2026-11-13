@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import PlatformAdminLayout from "@/src/component/admin/platform-admin-layout";
 
+
 export const metadata: Metadata = {
   title: "Platform Administration | VexChat",
   description:
@@ -14,4 +15,3 @@ export default function AdminRootLayout({
 }) {
   return <PlatformAdminLayout>{children}</PlatformAdminLayout>;
 }
-

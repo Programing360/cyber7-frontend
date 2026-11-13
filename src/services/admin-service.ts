@@ -195,13 +195,16 @@ class AdminService {
             ? "UNAUTHORIZED"
             : "HTTP_ERROR");
 
-      const message = json?.message || `Request failed with HTTP ${res.status}`;
+      const message =
+        (json as any)?.error ||
+        json?.message ||
+        `Request failed with HTTP ${res.status}`;
       throw new AdminApiError(message, res.status, code);
     }
 
     if (json && json.success === false) {
       throw new AdminApiError(
-        json.message || "Operation failed",
+        (json as any)?.error || json.message || "Operation failed",
         res.status,
         json.code || "OPERATION_FAILED",
       );
@@ -621,8 +624,31 @@ class AdminService {
       };
     }>(`/api/admin/dashboard/support/tickets${qs ? `?${qs}` : ""}`);
 
+    const rawItems = res?.items || [];
+    const normalizedItems: AdminSupportTicket[] = rawItems.map((t: any) => {
+      const id = t.id || t._id?.toString() || t.ticketNumber;
+      let assignedAdmin = t.assignedAdmin;
+      let assignedAdminId = t.assignedAdminId;
+      if (typeof assignedAdmin === "object" && assignedAdmin !== null) {
+        assignedAdminId =
+          assignedAdminId || assignedAdmin._id || assignedAdmin.id;
+        assignedAdmin =
+          assignedAdmin.name ||
+          assignedAdmin.email ||
+          (assignedAdminId
+            ? `Admin (${String(assignedAdminId).slice(-4)})`
+            : null);
+      }
+      return {
+        ...t,
+        id,
+        assignedAdminId: assignedAdminId || null,
+        assignedAdmin: assignedAdmin || null,
+      };
+    });
+
     return {
-      items: res?.items || [],
+      items: normalizedItems,
       total: res?.total || 0,
       page: res?.page || 1,
       limit: res?.pageSize || 10,
@@ -641,40 +667,75 @@ class AdminService {
     priority?: string;
     initialMessage?: string;
   }): Promise<AdminSupportTicket> {
-    return this.fetchBff("/api/admin/dashboard/support/tickets", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    const res = await this.fetchBff<AdminSupportTicket>(
+      "/api/admin/dashboard/support/tickets",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    const id =
+      (res as any)?.id || (res as any)?._id?.toString() || res.ticketNumber;
+    return {
+      ...res,
+      id,
+    };
   }
 
   async assignSupportTicket(
     ticketId: string,
     payload: { assignedAdminId?: string | null },
   ): Promise<AdminSupportTicket> {
-    return this.fetchBff(`/api/admin/dashboard/support/tickets/${ticketId}/assign`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    });
+    const cleanId = encodeURIComponent(String(ticketId || "").trim());
+    const res = await this.fetchBff<AdminSupportTicket>(
+      `/api/admin/dashboard/support/tickets/${cleanId}/assign`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          assignedAdminId: payload.assignedAdminId?.trim() || null,
+        }),
+      },
+    );
+    const id =
+      (res as any)?.id || (res as any)?._id?.toString() || cleanId;
+    return {
+      ...res,
+      id,
+    };
   }
 
   async updateSupportTicketStatus(
     ticketId: string,
     payload: { status: string },
   ): Promise<AdminSupportTicket> {
-    return this.fetchBff(`/api/admin/dashboard/support/tickets/${ticketId}/status`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    });
+    const cleanId = encodeURIComponent(String(ticketId || "").trim());
+    const res = await this.fetchBff<AdminSupportTicket>(
+      `/api/admin/dashboard/support/tickets/${cleanId}/status`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+    );
+    const id =
+      (res as any)?.id || (res as any)?._id?.toString() || cleanId;
+    return {
+      ...res,
+      id,
+    };
   }
 
   async addSupportTicketMessage(
     ticketId: string,
     payload: { content: string; attachments?: Array<{ filename: string; url: string }> },
   ): Promise<AdminSupportMessage> {
-    return this.fetchBff(`/api/admin/dashboard/support/tickets/${ticketId}/messages`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    const cleanId = encodeURIComponent(String(ticketId || "").trim());
+    return this.fetchBff(
+      `/api/admin/dashboard/support/tickets/${cleanId}/messages`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
   }
 
   // ==========================================
